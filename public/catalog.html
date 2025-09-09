@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SquidPro Data Catalog</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            color: #000000;
+            font-weight: 300;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        .header {
+            border-bottom: 1px solid #ffffff;
+            background-color: #ffffff;
+            padding: 2rem 0;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Magz', 'Inter', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: #000000;
+            letter-spacing: -0.02em;
+        }
+
+        .api-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: #4a4a4a;
+            font-weight: 400;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00bcd4;
+        }
+
+        /* Main Content */
+        .main {
+            padding: 3rem 0;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            letter-spacing: -0.03em;
+            color: #000000;
+        }
+
+        .hero p {
+            font-size: 1rem;
+            color: #666666;
+            max-width: 500px;
+            margin: 0 auto;
+            font-weight: 400;
+        }
+
+        /* Search and Filters */
+        .search-section {
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .search-row {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 1.5rem;
+            align-items: end;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .search-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #000000;
+        }
+
+        .search-input, .filter-select {
+            width: 100%;
+            padding: 0.75rem 0;
+            border: none;
+            border-bottom: 1px solid #e0e0e0;
+            background: transparent;
+            font-size: 1rem;
+            font-family: inherit;
+            font-weight: 300;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-input:focus, .filter-select:focus {
+            outline: none;
+            border-bottom-color: #00bcd4;
+        }
+
+        .search-input::placeholder {
+            color: #999999;
+        }
+
+        .search-btn {
+            padding: 0.75rem 1.5rem;
+            background: #000000;
+            color: #ffffff;
+            border: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .search-btn:hover {
+            background: #333333;
+        }
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            font-family: 'SF Pro Display', sans-serif;
+            font-size: 1rem;
+            color: #4a4a4a;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 400;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent);
+        }
+
+        .logo {
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+        }
+        /* Packages Grid */
+        .packages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .package-card {
+            border: 1px solid #f0f0f0;
+            background: #ffffff;
+            transition: border-color 0.2s ease, transform 0.2s ease;
+            padding: 2rem;
+        }
+
+        .package-card:hover {
+            border-color: #00bcd4;
+            transform: translateY(-2px);
+        }
+
+        .package-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .package-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #000000;
+            margin-bottom: 0.25rem;
+            letter-spacing: -0.01em;
+        }
+
+        .package-supplier {
+            font-size: 0.875rem;
+            color: #666666;
+            font-weight: 400;
+        }
+
+        .package-price {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #000000;
+        }
+
+        .package-description {
+            color: #666666;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            font-weight: 400;
+        }
+
+        .package-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tag {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border: 1px solid #e0e0e0;
+            color: #666666;
+            font-weight: 500;
+            background: transparent;
+        }
+
+        .tag.category {
+            border-color: #00bcd4;
+            color: #00bcd4;
+        }
+
+        /* Quality Section */
+        .quality-section {
+            border: 1px solid #f0f0f0;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            background: #fafafa;
+        }
+
+        .quality-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .quality-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #000000;
+        }
+
+        .overall-rating {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .rating-score {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #000000;
+        }
+
+        .rating-stars {
+            color: #00bcd4;
+            font-size: 0.875rem;
+        }
+
+        .quality-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .metric {
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: #999999;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #000000;
+        }
+
+        .quality-meta {
+            font-size: 0.75rem;
+            color: #999999;
+            margin-top: 0.75rem;
+            text-align: center;
+        }
+
+        /* Package Actions */
+        .package-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid #000000;
+            background: transparent;
+            color: #000000;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: #333333;
+        }
+
+        .btn-secondary:hover {
+            border-color: #00bcd4;
+            color: #00bcd4;
+        }
+
+        /* Integration Section */
+        .integration-section {
+            margin-top: 4rem;
+            padding: 3rem 0;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .integration-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #000000;
+            text-align: center;
+        }
+
+        .integration-subtitle {
+            text-align: center;
+            color: #666666;
+            margin-bottom: 3rem;
+            font-weight: 400;
+        }
+
+        .code-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .code-step {
+            border: 1px solid #f0f0f0;
+            padding: 1.5rem;
+        }
+
+        .step-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #000000;
+        }
+
+        .code-example {
+            background: #f8f8f8;
+            border: 1px solid #e0e0e0;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.75rem;
+            overflow-x: auto;
+        }
+
+        .code-example pre {
+            color: #333333;
+            line-height: 1.4;
+        }
+
+        /* Loading and Error States */
+        .loading, .error {
+            text-align: center;
+            padding: 3rem;
+            color: #666666;
+            font-weight: 400;
+        }
+
+        .error {
+            color: #000000;
+            border: 1px solid #f0f0f0;
+            background: #fafafa;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .search-row {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .packages-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .code-steps {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .package-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .quality-metrics {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+
+            .package-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">SquidPro</a>
+                <div class="nav-links">
+                    <a href="/" class="nav-link active">Menu</a>
+                    <a href="/profile.html" class="nav-link">Profile</a>
+                </div>
+                <div class="header-right">
+                    <div class="api-status">
+                        <div class="status-dot"></div>
+                        <span id="api-status-text">Connected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div class="hero">
+                <h1>Data Catalog</h1>
+                <p>Quality-verified data feeds for AI agents with transparent pricing and peer-reviewed reliability scores.</p>
+            </div>
+
+            <div class="search-section">
+                <div class="search-row">
+                    <div class="search-group">
+                        <label for="search">Search packages</label>
+                        <input 
+                            type="text" 
+                            id="search" 
+                            class="search-input" 
+                            placeholder="Search by name, description, or tags..."
+                        >
+                    </div>
+                    <div class="search-group">
+                        <label for="category">Category</label>
+                        <select id="category" class="filter-select">
+                            <option value="">All Categories</option>
+                            <option value="financial">Financial</option>
+                            <option value="weather">Weather</option>
+                            <option value="social">Social</option>
+                            <option value="news">News</option>
+                        </select>
+                    </div>
+                    <div class="search-group">
+                        <label>&nbsp;</label>
+                        <button class="search-btn" onclick="loadPackages()">Search</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="packages-container">
+                <div class="loading">
+                    Loading data packages...
+                </div>
+            </div>
+
+            <div class="integration-section">
+                <h2 class="integration-title">Quick Integration</h2>
+                <p class="integration-subtitle">Get started with SquidPro in 3 simple steps</p>
+                
+                <div class="code-steps">
+                    <div class="code-step">
+                        <h3 class="step-title">1. Get an API Token</h3>
+                        <div class="code-example">
+                            <pre>curl -X POST http://localhost:8100/mint \
+  -H "Content-Type: application/json" \
+  -d '{"agent_id":"my-ai-agent","credits":10.0}'</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-step">
+                        <h3 class="step-title">2. Query Any Data Package</h3>
+                        <div class="code-example">
+                            <pre>curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:8100/data/package/1"</pre>
+                        </div>
+                    </div>
+
+                    <div class="code-step">
+                        <h3 class="step-title">3. Get Data + Receipt</h3>
+                        <div class="code-example">
+                            <pre>{
+  "trace_id": "...",
+  "package_name": "Crypto Price Feed", 
+  "data": {"price": 65000.50, "volume": 123.45},
+  "cost": 0.005,
+  "payout": {"supplier": 0.0035, "reviewer_pool": 0.001}
+}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'http://localhost:8100';
+        let allPackages = [];
+
+        async function checkAPIStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    document.getElementById('api-status-text').textContent = 'Connected';
+                    return true;
+                }
+            } catch (error) {
+                document.getElementById('api-status-text').textContent = 'Disconnected';
+                return false;
+            }
+        }
+
+        async function loadPackages() {
+            const container = document.getElementById('packages-container');
+            container.innerHTML = '<div class="loading">Loading data packages...</div>';
+
+            try {
+                const packagesResponse = await fetch(`${API_BASE}/packages`);
+                if (!packagesResponse.ok) throw new Error('Failed to load packages');
+                
+                const packages = await packagesResponse.json();
+                allPackages = packages;
+
+                const packagesWithQuality = await Promise.all(
+                    packages.map(async (pkg) => {
+                        try {
+                            const qualityResponse = await fetch(`${API_BASE}/packages/${pkg.id}/quality`);
+                            if (qualityResponse.ok) {
+                                const quality = await qualityResponse.json();
+                                return { ...pkg, quality };
+                            }
+                        } catch (error) {
+                            console.log(`No quality data for package ${pkg.id}`);
+                        }
+                        return pkg;
+                    })
+                );
+
+                displayPackages(packagesWithQuality);
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="error">
+                        Failed to load packages. Make sure SquidPro API is running on port 8100.
+                        <br><br>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function displayPackages(packages) {
+            const container = document.getElementById('packages-container');
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const categoryFilter = document.getElementById('category').value;
+
+            let filteredPackages = packages.filter(pkg => {
+                const matchesSearch = !searchTerm || 
+                    pkg.name.toLowerCase().includes(searchTerm) ||
+                    pkg.description.toLowerCase().includes(searchTerm) ||
+                    (pkg.tags && pkg.tags.some(tag => tag.toLowerCase().includes(searchTerm)));
+                
+                const matchesCategory = !categoryFilter || pkg.category === categoryFilter;
+                
+                return matchesSearch && matchesCategory;
+            });
+
+            if (filteredPackages.length === 0) {
+                container.innerHTML = `
+                    <div class="error">
+                        No packages found matching your criteria.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="packages-grid">
+                    ${filteredPackages.map(pkg => createPackageCard(pkg)).join('')}
+                </div>
+            `;
+        }
+
+        function createPackageCard(pkg) {
+            const hasQuality = pkg.quality && pkg.quality.total_reviews > 0;
+            const overallRating = hasQuality ? pkg.quality.scores.overall_rating : 0;
+            const totalReviews = hasQuality ? pkg.quality.total_reviews : 0;
+
+            return `
+                <div class="package-card">
+                    <div class="package-header">
+                        <div>
+                            <h3 class="package-title">${pkg.name}</h3>
+                            <p class="package-supplier">${pkg.supplier}</p>
+                        </div>
+                        <div class="package-price">$${pkg.price_per_query}</div>
+                    </div>
+                    
+                    <p class="package-description">${pkg.description}</p>
+                    
+                    <div class="package-tags">
+                        <span class="tag category">${pkg.category}</span>
+                        ${(pkg.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                    
+                    ${hasQuality ? `
+                        <div class="quality-section">
+                            <div class="quality-header">
+                                <span class="quality-title">Quality Score</span>
+                                <div class="overall-rating">
+                                    <span class="rating-score">${overallRating.toFixed(1)}/10</span>
+                                    <span class="rating-stars">${'●'.repeat(Math.round(overallRating/2))}</span>
+                                </div>
+                            </div>
+                            <div class="quality-metrics">
+                                <div class="metric">
+                                    <div class="metric-label">Accuracy</div>
+                                    <div class="metric-value">${pkg.quality.scores.quality.toFixed(1)}</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-label">Freshness</div>
+                                    <div class="metric-value">${pkg.quality.scores.timeliness.toFixed(1)}</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-label">Schema</div>
+                                    <div class="metric-value">${pkg.quality.scores.schema_compliance.toFixed(1)}</div>
+                                </div>
+                            </div>
+                            <p class="quality-meta">
+                                Based on ${totalReviews} review${totalReviews !== 1 ? 's' : ''} · Last reviewed ${formatDate(pkg.quality.last_reviewed)}
+                            </p>
+                        </div>
+                    ` : `
+                        <div class="quality-section">
+                            <div class="quality-header">
+                                <span class="quality-title">Quality Score</span>
+                                <div class="overall-rating">
+                                    <span style="color: var(--text-tertiary); font-size: 0.875rem;">Not yet reviewed</span>
+                                </div>
+                            </div>
+                        </div>
+                    `}
+                    
+                    <div class="package-actions">
+                        <button class="btn btn-primary" onclick="showIntegrationCode(${pkg.id}, '${pkg.name}')">
+                            Use Package
+                        </button>
+                        <button class="btn btn-secondary" onclick="showSampleData(${pkg.id})">
+                            View Sample
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Never';
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            
+            if (diffHours < 1) return 'Recently';
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        function showIntegrationCode(packageId, packageName) {
+            alert(`Integration for "${packageName}":\n\n` +
+                  `1. Mint token: POST /mint\n` +
+                  `2. Query package: GET /data/package/${packageId}\n` +
+                  `3. Use Authorization: Bearer YOUR_TOKEN header\n\n` +
+                  `See integration examples below.`);
+        }
+
+        function showSampleData(packageId) {
+            const pkg = allPackages.find(p => p.id === packageId);
+            if (pkg && pkg.sample_data) {
+                alert(`Sample Data:\n\n${JSON.stringify(pkg.sample_data, null, 2)}`);
+            } else {
+                alert('No sample data available for this package.');
+            }
+        }
+
+        // Event listeners
+        document.getElementById('search').addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                loadPackages();
+            }
+        });
+
+        document.getElementById('category').addEventListener('change', loadPackages);
+
+        // Initialize
+        checkAPIStatus();
+        loadPackages();
+        setInterval(checkAPIStatus, 30000);
+    </script>
+</body>
+</html>

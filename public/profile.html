@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - SquidPro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #fafafa;
+            --bg-tertiary: #f8f8f8;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --border-primary: #f0f0f0;
+            --border-secondary: #e0e0e0;
+            --accent: #00bcd4;
+            --success: #00c851;
+            --error: #ff5252;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-weight: 300;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        .header {
+            border-bottom: 1px solid var(--border-primary);
+            padding: 2rem 0;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: 'Magz', 'Inter', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 400;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent);
+        }
+
+        /* Main Content */
+        .main {
+            padding: 3rem 0;
+        }
+
+        /* Authentication Section */
+        .auth-section {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            border: 1px solid var(--border-primary);
+            background: var(--bg-secondary);
+        }
+
+        .auth-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .auth-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-secondary);
+            background: var(--bg-primary);
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            transition: border-color 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+
+        .auth-btn:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Dashboard Section */
+        .dashboard-section {
+            display: none;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+        }
+
+        .user-info h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border-secondary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .logout-btn:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            padding: 2rem;
+            border: 1px solid var(--border-primary);
+            background: var(--bg-secondary);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        /* Content Sections */
+        .content-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .section-content {
+            border: 1px solid var(--border-primary);
+            background: var(--bg-secondary);
+            padding: 2rem;
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .data-table th {
+            background: var(--bg-tertiary);
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .data-table td {
+            font-size: 0.875rem;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid var(--text-primary);
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-right: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-primary:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Messages */
+        .message {
+            padding: 1rem;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+        }
+
+        .message.error {
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        .message.success {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            .dashboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">SquidPro</a>
+                <div class="nav-links">
+                    <a href="/" class="nav-link">Catalog</a>
+                    <a href="/profile.html" class="nav-link active">Profile</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <!-- Authentication Section -->
+            <div id="auth-section" class="auth-section">
+                <div class="auth-header">
+                    <h1 class="auth-title">Access Your Account</h1>
+                    <p class="auth-subtitle">Sign in to manage your SquidPro business</p>
+                </div>
+
+                <form id="login-form">
+                    <div class="form-group">
+                        <label class="form-label" for="login-key">API Key / Token</label>
+                        <input 
+                            type="password" 
+                            id="login-key" 
+                            class="form-input" 
+                            placeholder="Enter your API key (sup_... or rev_...)"
+                            required
+                        >
+                        <div style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 0.25rem;">
+                            Enter your supplier API key (sup_...) or reviewer key (rev_...)
+                        </div>
+                    </div>
+                    <button type="submit" class="auth-btn">
+                        Access Dashboard
+                    </button>
+                </form>
+
+                <div id="auth-message"></div>
+
+                <div style="margin-top: 2rem; text-align: center;">
+                    <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                        Don't have an account? <a href="#" onclick="showRegisterInfo()" style="color: var(--accent);">Register here</a>
+                    </p>
+                    <a href="/" class="btn" style="margin-top: 1rem;">← Back to Catalog</a>
+                </div>
+            </div>
+
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="dashboard-section">
+                <div class="dashboard-header">
+                    <div class="user-info">
+                        <h1 id="user-name">Loading...</h1>
+                        <p class="user-subtitle" id="user-role">Loading role...</p>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+
+                <div class="stats-grid" id="stats-grid">
+                    <!-- Stats will be populated by JavaScript -->
+                </div>
+
+                <div class="content-section">
+                    <h2 class="section-title" id="section-title">Dashboard</h2>
+                    <div class="section-content" id="section-content">
+                        <div class="loading">Loading your data...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'http://localhost:8100';
+        let currentUser = null;
+
+        // Authentication
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const apiKey = document.getElementById('login-key').value.trim();
+            const btn = e.target.querySelector('button');
+            const messageDiv = document.getElementById('auth-message');
+            
+            if (!apiKey) {
+                showMessage('Please enter your API key', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Signing in...';
+            messageDiv.innerHTML = '';
+
+            try {
+                // Try to authenticate
+                const roleEndpoints = {
+                    'supplier': '/suppliers/me',
+                    'reviewer': '/reviewers/me'
+                };
+
+                let authenticatedRole = null;
+                let userData = null;
+
+                for (const [role, endpoint] of Object.entries(roleEndpoints)) {
+                    try {
+                        const response = await fetch(`${API_BASE}${endpoint}`, {
+                            headers: { 'X-API-Key': apiKey }
+                        });
+
+                        if (response.ok) {
+                            userData = await response.json();
+                            authenticatedRole = role;
+                            break;
+                        }
+                    } catch (error) {
+                        console.log(`No ${role} access`);
+                    }
+                }
+
+                if (authenticatedRole && userData) {
+                    currentUser = {
+                        role: authenticatedRole,
+                        apiKey: apiKey,
+                        ...userData
+                    };
+                    
+                    showDashboard();
+                } else {
+                    showMessage('Invalid API key. Please check your credentials.', 'error');
+                }
+
+            } catch (error) {
+                showMessage(`Login failed: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Access Dashboard';
+            }
+        });
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('auth-message');
+            messageDiv.innerHTML = `<div class="message ${type}">${message}</div>`;
+        }
+
+        function showDashboard() {
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('dashboard-section').style.display = 'block';
+            
+            // Update user info
+            document.getElementById('user-name').textContent = currentUser.name;
+            document.getElementById('user-role').textContent = `${currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)} Account`;
+            
+            loadDashboardData();
+        }
+
+        async function loadDashboardData() {
+            const statsGrid = document.getElementById('stats-grid');
+            const sectionContent = document.getElementById('section-content');
+            
+            try {
+                if (currentUser.role === 'supplier') {
+                    await loadSupplierDashboard();
+                } else if (currentUser.role === 'reviewer') {
+                    await loadReviewerDashboard();
+                }
+            } catch (error) {
+                sectionContent.innerHTML = `<div class="message error">Failed to load dashboard data: ${error.message}</div>`;
+            }
+        }
+
+        async function loadSupplierDashboard() {
+            const statsGrid = document.getElementById('stats-grid');
+            const sectionContent = document.getElementById('section-content');
+            
+            // Load supplier stats
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">$${(currentUser.balance || 0).toFixed(2)}</div>
+                    <div class="stat-label">Current Balance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${currentUser.package_count || 0}</div>
+                    <div class="stat-label">Data Packages</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${currentUser.status || 'Active'}</div>
+                    <div class="stat-label">Account Status</div>
+                </div>
+            `;
+
+            // Load packages
+            try {
+                const response = await fetch(`${API_BASE}/packages`);
+                const allPackages = await response.json();
+                const myPackages = allPackages.filter(pkg => pkg.supplier === currentUser.name);
+                
+                sectionContent.innerHTML = `
+                    <h3>Your Data Packages</h3>
+                    ${myPackages.length === 0 ? 
+                        '<p>No packages yet. <a href="#" class="btn btn-primary">Create Package</a></p>' :
+                        `<table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Package Name</th>
+                                    <th>Category</th>
+                                    <th>Price</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${myPackages.map(pkg => `
+                                    <tr>
+                                        <td>${pkg.name}</td>
+                                        <td>${pkg.category}</td>
+                                        <td>$${pkg.price_per_query}</td>
+                                        <td>Active</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>`
+                    }
+                `;
+            } catch (error) {
+                sectionContent.innerHTML = '<p>Unable to load packages</p>';
+            }
+        }
+
+        async function loadReviewerDashboard() {
+            const statsGrid = document.getElementById('stats-grid');
+            const sectionContent = document.getElementById('section-content');
+            
+            // Load reviewer stats
+            const stats = currentUser.stats || {};
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">$${(currentUser.balance || 0).toFixed(2)}</div>
+                    <div class="stat-label">Current Balance</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.total_reviews || 0}</div>
+                    <div class="stat-label">Reviews Completed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${((stats.consensus_rate || 0) * 100).toFixed(0)}%</div>
+                    <div class="stat-label">Consensus Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${currentUser.reputation_level || 'Novice'}</div>
+                    <div class="stat-label">Reputation Level</div>
+                </div>
+            `;
+
+            // Load available review tasks
+            try {
+                const response = await fetch(`${API_BASE}/review-tasks`, {
+                    headers: { 'X-API-Key': currentUser.apiKey }
+                });
+                
+                if (response.ok) {
+                    const tasks = await response.json();
+                    
+                    sectionContent.innerHTML = `
+                        <h3>Available Review Tasks</h3>
+                        ${tasks.length === 0 ? 
+                            '<p>No review tasks available at the moment.</p>' :
+                            `<table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Package</th>
+                                        <th>Task Type</th>
+                                        <th>Reward</th>
+                                        <th>Spots Left</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tasks.map(task => `
+                                        <tr>
+                                            <td>${task.package_name}</td>
+                                            <td>${task.task_type}</td>
+                                            <td>$${task.reward_pool}</td>
+                                            <td>${task.spots_remaining}</td>
+                                            <td><button class="btn btn-primary" onclick="startReview(${task.task_id})">Review</button></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>`
+                        }
+                    `;
+                } else {
+                    sectionContent.innerHTML = '<p>Unable to load review tasks</p>';
+                }
+            } catch (error) {
+                sectionContent.innerHTML = '<p>Unable to load review tasks</p>';
+            }
+        }
+
+        function startReview(taskId) {
+            alert(`Starting review for task ${taskId}. This would open the review interface.`);
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('auth-section').style.display = 'block';
+            document.getElementById('dashboard-section').style.display = 'none';
+            document.getElementById('login-key').value = '';
+            document.getElementById('auth-message').innerHTML = '';
+        }
+
+        function showRegisterInfo() {
+            alert(`To register new accounts:\n\n1. Supplier: POST /suppliers/register\n2. Reviewer: POST /reviewers/register\n\nOr use the demo registration tool at:\nhttp://localhost:8100/static/demo-registration.html`);
+        }
+    </script>
+</body>
+</html>

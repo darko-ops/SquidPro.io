@@ -1,0 +1,54 @@
+version: "3.9"
+services:
+  squidpro-api:
+    build: ./squidpro-api
+    volumes:
+      - ./squidpro-api/app.py:/app/app.py
+      - ./squidpro-api/public:/app/public
+      - ./uploads:/app/uploads  
+      - ./squidpro-frontend/dist:/app/public
+
+    environment:
+    - SQUIDPRO_SECRET=supersecret_change_me
+    - PRICE_PER_QUERY_USD=0.005
+    - SUPPLIER_SPLIT=0.7
+    - REVIEWER_SPLIT=0.2
+    - SQUIDPRO_SPLIT=0.1
+    - COLLECTOR_CRYPTO_URL=http://collector-crypto:8200
+    - DATABASE_URL=postgresql://squidpro:password@postgres:5432/squidpro
+    - STELLAR_SECRET_KEY=SDFF2WLXYOHAIA2NPOFJJXTJAU5DD6EBDWGTCFBQVGATEZJJWBTR23SH
+    - STELLAR_NETWORK=testnet
+    - USDC_ASSET_CODE=USDC
+    - USDC_ASSET_ISSUER=GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5
+    ports:
+      - "8100:8100"
+    depends_on:
+      - collector-crypto
+      - postgres
+    restart: unless-stopped
+
+  collector-crypto:
+    build: ./collector-crypto
+    environment:
+      - SEED=42
+    ports:
+      - "8200:8200"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=squidpro
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=squidpro
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./squidpro-api/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+

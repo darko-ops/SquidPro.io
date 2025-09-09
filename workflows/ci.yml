@@ -1,0 +1,86 @@
+name: SquidPro CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: squidpro
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: squidpro
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Create uploads directory
+      run: mkdir -p uploads
+
+    - name: Start services
+      run: |
+        docker compose up -d --build
+        sleep 10
+
+    - name: Wait for API to be ready
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:8100/health; do sleep 2; done'
+
+    - name: Test supplier registration
+      run: |
+        RESPONSE=$(curl -s -X POST http://localhost:8100/suppliers/register \
+          -H "Content-Type: application/json" \
+          -d '{
+            "name": "CI Test Supplier",
+            "email": "ci-test@example.com",
+            "stellar_address": "GDXDSB444OLNDYOJAVGU3JWQO4BEGQT2MCVTDHLOWORRQODJJXO3GBDU"
+          }')
+        
+        if echo "$RESPONSE" | jq -e '.api_key' > /dev/null; then
+          echo "Supplier registration successful"
+          echo "API_KEY=$(echo "$RESPONSE" | jq -r '.api_key')" >> $GITHUB_ENV
+        else
+          echo "Supplier registration failed"
+          exit 1
+        fi
+
+    - name: Test clean data upload
+      run: |
+        echo "symbol,price" > test_clean.csv
+        echo "BTC,67500" >> test_clean.csv
+        
+        RESPONSE=$(curl -s -X POST http://localhost:8100/suppliers/upload \
+          -H "X-API-Key: $API_KEY" \
+          -F "file=@test_clean.csv" \
+          -F "name=CI Test Upload")
+        
+        if echo "$RESPONSE" | jq -e '.package_id' > /dev/null; then
+          echo "Clean upload successful"
+        else
+          echo "Upload failed: $RESPONSE"
+          exit 1
+        fi
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker compose down -v

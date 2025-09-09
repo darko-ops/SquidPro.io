@@ -1,0 +1,3 @@
+name,description
+"Product","<script>alert('XSS')</script>"
+"Item","<img src=x onerror=alert('XSS')>"
