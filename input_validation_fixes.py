@@ -5,7 +5,7 @@ import re
 
 class SecureSupplierRegistration(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, regex="^[a-zA-Z0-9\\s\\-\\.]+$")
-    email: str = Field(..., regex="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")
+    email: str = Field(..., pattern=r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
     stellar_address: str = Field(..., min_length=56, max_length=56, regex="^G[A-Z2-7]{55}$")
     
     @validator('name')

@@ -8,6 +8,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #fafafa;
+            --bg-tertiary: #f8f8f8;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --border-primary: #f0f0f0;
+            --border-secondary: #e0e0e0;
+            --accent: #00bcd4;
+            --success: #00c851;
+            --error: #ff5252;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -16,8 +30,8 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #ffffff;
-            color: #000000;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             font-weight: 300;
             line-height: 1.5;
             min-height: 100vh;
@@ -31,8 +45,8 @@
 
         /* Header */
         .header {
-            border-bottom: 1px solid #ffffff;
-            background-color: #ffffff;
+            border-bottom: 1px solid var(--border-primary);
+            background-color: var(--bg-primary);
             padding: 2rem 0;
         }
 
@@ -46,24 +60,144 @@
             font-family: 'Magz', 'Inter', sans-serif;
             font-size: 2rem;
             font-weight: 800;
-            color: #000000;
-            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            text-decoration: none;
         }
 
-        .api-status {
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 400;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent);
+        }
+
+        .user-menu {
+            position: relative;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            font-size: 0.875rem;
-            color: #4a4a4a;
-            font-weight: 400;
+            gap: 1rem;
         }
 
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #00bcd4;
+        .user-greeting {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .user-dropdown {
+            position: relative;
+        }
+
+        .dropdown-toggle {
+            background: none;
+            border: 1px solid var(--border-secondary);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            min-width: 200px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            border-bottom: 1px solid var(--border-primary);
+            transition: background-color 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Role-based features */
+        .role-features {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .role-badge {
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-secondary);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .supplier-badge {
+            background: rgba(0, 188, 212, 0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .reviewer-badge {
+            background: rgba(0, 200, 81, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        /* Quick actions */
+        .quick-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+        }
+
+        .quick-action {
+            padding: 0.5rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-secondary);
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .quick-action:hover {
+            border-color: var(--accent);
+        }
+
+        .quick-action.primary {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .quick-action.primary:hover {
+            background: #00acc1;
         }
 
         /* Main Content */
@@ -73,30 +207,27 @@
 
         .hero {
             text-align: center;
-            margin-bottom: 4rem;
+            margin-bottom: 3rem;
         }
 
         .hero h1 {
             font-size: 2.5rem;
             font-weight: 600;
             margin-bottom: 1rem;
-            letter-spacing: -0.03em;
-            color: #000000;
+            color: var(--text-primary);
         }
 
         .hero p {
             font-size: 1rem;
-            color: #666666;
+            color: var(--text-secondary);
             max-width: 500px;
             margin: 0 auto;
-            font-weight: 400;
         }
 
-        /* Search and Filters */
         .search-section {
             margin-bottom: 3rem;
             padding: 2rem 0;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid var(--border-primary);
         }
 
         .search-row {
@@ -113,75 +244,38 @@
             font-size: 0.875rem;
             font-weight: 500;
             margin-bottom: 0.5rem;
-            color: #000000;
+            color: var(--text-primary);
         }
 
         .search-input, .filter-select {
             width: 100%;
-            padding: 0.75rem 0;
-            border: none;
-            border-bottom: 1px solid #e0e0e0;
-            background: transparent;
+            padding: 0.75rem;
+            border: 1px solid var(--border-secondary);
+            background: var(--bg-primary);
             font-size: 1rem;
-            font-family: inherit;
-            font-weight: 300;
             transition: border-color 0.2s ease;
         }
 
         .search-input:focus, .filter-select:focus {
             outline: none;
-            border-bottom-color: #00bcd4;
-        }
-
-        .search-input::placeholder {
-            color: #999999;
+            border-color: var(--accent);
         }
 
         .search-btn {
             padding: 0.75rem 1.5rem;
-            background: #000000;
-            color: #ffffff;
+            background: var(--text-primary);
+            color: var(--bg-primary);
             border: none;
             font-size: 0.875rem;
             font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s ease;
         }
 
         .search-btn:hover {
-            background: #333333;
-        }
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-            font-family: 'SF Pro Display', sans-serif;
-            font-size: 1rem;
-            color: #4a4a4a;
+            background: var(--text-secondary);
         }
 
-        .nav-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-weight: 400;
-            transition: color 0.3s ease;
-        }
-
-        .nav-link:hover, .nav-link.active {
-            color: var(--accent);
-        }
-
-        .logo {
-            text-decoration: none;
-            color: var(--text-primary);
-        }
-
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-        }
-        /* Packages Grid */
+        /* Package cards */
         .packages-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
@@ -190,14 +284,14 @@
         }
 
         .package-card {
-            border: 1px solid #f0f0f0;
-            background: #ffffff;
+            border: 1px solid var(--border-primary);
+            background: var(--bg-primary);
             transition: border-color 0.2s ease, transform 0.2s ease;
             padding: 2rem;
         }
 
         .package-card:hover {
-            border-color: #00bcd4;
+            border-color: var(--accent);
             transform: translateY(-2px);
         }
 
@@ -211,28 +305,25 @@
         .package-title {
             font-size: 1.25rem;
             font-weight: 600;
-            color: #000000;
+            color: var(--text-primary);
             margin-bottom: 0.25rem;
-            letter-spacing: -0.01em;
         }
 
         .package-supplier {
             font-size: 0.875rem;
-            color: #666666;
-            font-weight: 400;
+            color: var(--text-secondary);
         }
 
         .package-price {
             font-size: 1rem;
             font-weight: 600;
-            color: #000000;
+            color: var(--text-primary);
         }
 
         .package-description {
-            color: #666666;
+            color: var(--text-secondary);
             font-size: 0.9rem;
             margin-bottom: 1.5rem;
-            font-weight: 400;
         }
 
         .package-tags {
@@ -245,86 +336,17 @@
         .tag {
             padding: 0.25rem 0.5rem;
             font-size: 0.75rem;
-            border: 1px solid #e0e0e0;
-            color: #666666;
-            font-weight: 500;
-            background: transparent;
+            border: 1px solid var(--border-secondary);
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
         }
 
         .tag.category {
-            border-color: #00bcd4;
-            color: #00bcd4;
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(0, 188, 212, 0.05);
         }
 
-        /* Quality Section */
-        .quality-section {
-            border: 1px solid #f0f0f0;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            background: #fafafa;
-        }
-
-        .quality-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .quality-title {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #000000;
-        }
-
-        .overall-rating {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .rating-score {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #000000;
-        }
-
-        .rating-stars {
-            color: #00bcd4;
-            font-size: 0.875rem;
-        }
-
-        .quality-metrics {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-        }
-
-        .metric {
-            text-align: center;
-        }
-
-        .metric-label {
-            font-size: 0.75rem;
-            color: #999999;
-            margin-bottom: 0.25rem;
-            font-weight: 500;
-        }
-
-        .metric-value {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #000000;
-        }
-
-        .quality-meta {
-            font-size: 0.75rem;
-            color: #999999;
-            margin-top: 0.75rem;
-            text-align: center;
-        }
-
-        /* Package Actions */
         .package-actions {
             display: flex;
             gap: 1rem;
@@ -333,140 +355,75 @@
         .btn {
             flex: 1;
             padding: 0.75rem 1rem;
-            border: 1px solid #000000;
+            border: 1px solid var(--text-primary);
             background: transparent;
-            color: #000000;
+            color: var(--text-primary);
             font-size: 0.875rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease;
-            text-align: center;
             text-decoration: none;
-            display: inline-block;
+            text-align: center;
+            transition: all 0.2s ease;
         }
 
         .btn-primary {
-            background: #000000;
-            color: #ffffff;
+            background: var(--text-primary);
+            color: var(--bg-primary);
         }
 
         .btn-primary:hover {
-            background: #333333;
+            background: var(--text-secondary);
         }
 
         .btn-secondary:hover {
-            border-color: #00bcd4;
-            color: #00bcd4;
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
-        /* Integration Section */
-        .integration-section {
-            margin-top: 4rem;
-            padding: 3rem 0;
-            border-top: 1px solid #f0f0f0;
-        }
-
-        .integration-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #000000;
+        /* Auth states */
+        .auth-required {
             text-align: center;
+            padding: 2rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            margin: 2rem 0;
         }
 
-        .integration-subtitle {
-            text-align: center;
-            color: #666666;
-            margin-bottom: 3rem;
-            font-weight: 400;
-        }
-
-        .code-steps {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .code-step {
-            border: 1px solid #f0f0f0;
-            padding: 1.5rem;
-        }
-
-        .step-title {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #000000;
-        }
-
-        .code-example {
-            background: #f8f8f8;
-            border: 1px solid #e0e0e0;
-            padding: 1rem;
-            margin: 1rem 0;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.75rem;
-            overflow-x: auto;
-        }
-
-        .code-example pre {
-            color: #333333;
-            line-height: 1.4;
-        }
-
-        /* Loading and Error States */
-        .loading, .error {
+        .loading {
             text-align: center;
             padding: 3rem;
-            color: #666666;
-            font-weight: 400;
+            color: var(--text-secondary);
         }
 
         .error {
-            color: #000000;
-            border: 1px solid #f0f0f0;
-            background: #fafafa;
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            margin: 1rem 0;
         }
 
-        /* Responsive Design */
+        /* Responsive */
         @media (max-width: 768px) {
             .container {
                 padding: 0 1rem;
             }
 
-            .hero h1 {
-                font-size: 2rem;
+            .nav-links {
+                flex-direction: column;
+                gap: 1rem;
             }
 
             .search-row {
                 grid-template-columns: 1fr;
-                gap: 1rem;
             }
 
             .packages-grid {
                 grid-template-columns: 1fr;
             }
 
-            .code-steps {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .package-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
-            }
-
-            .quality-metrics {
-                grid-template-columns: 1fr;
-                gap: 0.5rem;
-            }
-
-            .package-actions {
+            .quick-actions {
                 flex-direction: column;
             }
         }
@@ -478,13 +435,11 @@
             <div class="header-content">
                 <a href="/" class="logo">SquidPro</a>
                 <div class="nav-links">
-                    <a href="/" class="nav-link active">Menu</a>
+                    <a href="/catalog.html" class="nav-link active">Catalog</a>
                     <a href="/profile.html" class="nav-link">Profile</a>
-                </div>
-                <div class="header-right">
-                    <div class="api-status">
-                        <div class="status-dot"></div>
-                        <span id="api-status-text">Connected</span>
+                    
+                    <div id="auth-section">
+                        <!-- Populated by JavaScript based on auth status -->
                     </div>
                 </div>
             </div>
@@ -493,6 +448,11 @@
 
     <main class="main">
         <div class="container">
+            <!-- Role-based quick actions -->
+            <div id="quick-actions" class="quick-actions" style="display: none;">
+                <!-- Populated by JavaScript based on user roles -->
+            </div>
+
             <div class="hero">
                 <h1>Data Catalog</h1>
                 <p>Quality-verified data feeds for AI agents with transparent pricing and peer-reviewed reliability scores.</p>
@@ -527,46 +487,7 @@
             </div>
 
             <div id="packages-container">
-                <div class="loading">
-                    Loading data packages...
-                </div>
-            </div>
-
-            <div class="integration-section">
-                <h2 class="integration-title">Quick Integration</h2>
-                <p class="integration-subtitle">Get started with SquidPro in 3 simple steps</p>
-                
-                <div class="code-steps">
-                    <div class="code-step">
-                        <h3 class="step-title">1. Get an API Token</h3>
-                        <div class="code-example">
-                            <pre>curl -X POST http://localhost:8100/mint \
-  -H "Content-Type: application/json" \
-  -d '{"agent_id":"my-ai-agent","credits":10.0}'</pre>
-                        </div>
-                    </div>
-
-                    <div class="code-step">
-                        <h3 class="step-title">2. Query Any Data Package</h3>
-                        <div class="code-example">
-                            <pre>curl -H "Authorization: Bearer YOUR_TOKEN" \
-  "http://localhost:8100/data/package/1"</pre>
-                        </div>
-                    </div>
-
-                    <div class="code-step">
-                        <h3 class="step-title">3. Get Data + Receipt</h3>
-                        <div class="code-example">
-                            <pre>{
-  "trace_id": "...",
-  "package_name": "Crypto Price Feed", 
-  "data": {"price": 65000.50, "volume": 123.45},
-  "cost": 0.005,
-  "payout": {"supplier": 0.0035, "reviewer_pool": 0.001}
-}</pre>
-                        </div>
-                    </div>
-                </div>
+                <div class="loading">Loading data packages...</div>
             </div>
         </div>
     </main>
@@ -574,20 +495,108 @@
     <script>
         const API_BASE = 'http://localhost:8100';
         let allPackages = [];
+        let currentUser = null;
 
-        async function checkAPIStatus() {
-            try {
-                const response = await fetch(`${API_BASE}/health`);
-                if (response.ok) {
-                    document.getElementById('api-status-text').textContent = 'Connected';
-                    return true;
-                }
-            } catch (error) {
-                document.getElementById('api-status-text').textContent = 'Disconnected';
-                return false;
+        // Authentication functions
+        function getCurrentUser() {
+            const userData = localStorage.getItem('squidpro_user');
+            return userData ? JSON.parse(userData) : null;
+        }
+
+        function checkAuthStatus() {
+            currentUser = getCurrentUser();
+            const authSection = document.getElementById('auth-section');
+            
+            if (currentUser) {
+                authSection.innerHTML = `
+                    <div class="user-menu">
+                        <span class="user-greeting">Welcome, ${currentUser.username}</span>
+                        <div class="role-features">
+                            ${currentUser.roles.map(role => 
+                                `<span class="role-badge ${role}-badge">${role}</span>`
+                            ).join('')}
+                        </div>
+                        <div class="user-dropdown">
+                            <button class="dropdown-toggle" onclick="toggleDropdown()">
+                                Account ▼
+                            </button>
+                            <div class="dropdown-menu" id="user-dropdown">
+                                <a href="/profile.html" class="dropdown-item">Profile</a>
+                                <a href="#" class="dropdown-item" onclick="viewApiKey()">API Key</a>
+                                <a href="#" class="dropdown-item" onclick="logout()">Logout</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                updateRoleBasedUI(currentUser.roles);
+            } else {
+                authSection.innerHTML = `
+                    <a href="/auth.html" class="nav-link">Sign In</a>
+                `;
             }
         }
 
+        function updateRoleBasedUI(roles) {
+            const quickActions = document.getElementById('quick-actions');
+            let actions = [];
+            
+            if (roles.includes('supplier')) {
+                actions.push('<a href="#" class="quick-action primary" onclick="uploadData()">Upload Data Package</a>');
+                actions.push('<a href="#" class="quick-action" onclick="managePackages()">Manage My Packages</a>');
+            }
+            
+            if (roles.includes('reviewer')) {
+                actions.push('<a href="#" class="quick-action" onclick="viewReviewTasks()">Review Tasks</a>');
+                actions.push('<a href="#" class="quick-action" onclick="reviewDashboard()">Review Dashboard</a>');
+            }
+            
+            actions.push('<a href="#" class="quick-action" onclick="viewPurchases()">My Purchases</a>');
+            
+            if (actions.length > 0) {
+                quickActions.innerHTML = actions.join('');
+                quickActions.style.display = 'flex';
+            }
+        }
+
+        function toggleDropdown() {
+            const dropdown = document.getElementById('user-dropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function logout() {
+            localStorage.removeItem('squidpro_user');
+            window.location.href = '/auth.html';
+        }
+
+        function viewApiKey() {
+            if (currentUser) {
+                alert(`Your API Key:\n\n${currentUser.api_key}\n\nUse this key in the X-API-Key header for authenticated requests.`);
+            }
+        }
+
+        // Role-based action handlers
+        function uploadData() {
+            alert('Data upload feature coming soon! This will allow suppliers to upload new data packages.');
+        }
+
+        function managePackages() {
+            alert('Package management coming soon! This will show your uploaded packages and earnings.');
+        }
+
+        function viewReviewTasks() {
+            alert('Review tasks coming soon! This will show available quality review tasks.');
+        }
+
+        function reviewDashboard() {
+            alert('Review dashboard coming soon! This will show your review history and reputation.');
+        }
+
+        function viewPurchases() {
+            alert('Purchase history coming soon! This will show your data purchase history.');
+        }
+
+        // Package loading and display (existing functionality)
         async function loadPackages() {
             const container = document.getElementById('packages-container');
             container.innerHTML = '<div class="loading">Loading data packages...</div>';
@@ -618,7 +627,7 @@
             } catch (error) {
                 container.innerHTML = `
                     <div class="error">
-                        Failed to load packages. Make sure SquidPro API is running on port 8100.
+                        Failed to load packages. Make sure SquidPro API is running.
                         <br><br>
                         Error: ${error.message}
                     </div>
@@ -644,9 +653,7 @@
 
             if (filteredPackages.length === 0) {
                 container.innerHTML = `
-                    <div class="error">
-                        No packages found matching your criteria.
-                    </div>
+                    <div class="error">No packages found matching your criteria.</div>
                 `;
                 return;
             }
@@ -662,6 +669,12 @@
             const hasQuality = pkg.quality && pkg.quality.total_reviews > 0;
             const overallRating = hasQuality ? pkg.quality.scores.overall_rating : 0;
             const totalReviews = hasQuality ? pkg.quality.total_reviews : 0;
+
+            // Determine if user can purchase (authenticated users)
+            const canPurchase = currentUser !== null;
+            const purchaseButton = canPurchase 
+                ? `<button class="btn btn-primary" onclick="purchaseAccess(${pkg.id}, '${pkg.name}')">Purchase Access</button>`
+                : `<a href="/auth.html" class="btn btn-primary">Sign In to Purchase</a>`;
 
             return `
                 <div class="package-card">
@@ -680,76 +693,22 @@
                         ${(pkg.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
                     </div>
                     
-                    ${hasQuality ? `
-                        <div class="quality-section">
-                            <div class="quality-header">
-                                <span class="quality-title">Quality Score</span>
-                                <div class="overall-rating">
-                                    <span class="rating-score">${overallRating.toFixed(1)}/10</span>
-                                    <span class="rating-stars">${'●'.repeat(Math.round(overallRating/2))}</span>
-                                </div>
-                            </div>
-                            <div class="quality-metrics">
-                                <div class="metric">
-                                    <div class="metric-label">Accuracy</div>
-                                    <div class="metric-value">${pkg.quality.scores.quality.toFixed(1)}</div>
-                                </div>
-                                <div class="metric">
-                                    <div class="metric-label">Freshness</div>
-                                    <div class="metric-value">${pkg.quality.scores.timeliness.toFixed(1)}</div>
-                                </div>
-                                <div class="metric">
-                                    <div class="metric-label">Schema</div>
-                                    <div class="metric-value">${pkg.quality.scores.schema_compliance.toFixed(1)}</div>
-                                </div>
-                            </div>
-                            <p class="quality-meta">
-                                Based on ${totalReviews} review${totalReviews !== 1 ? 's' : ''} · Last reviewed ${formatDate(pkg.quality.last_reviewed)}
-                            </p>
-                        </div>
-                    ` : `
-                        <div class="quality-section">
-                            <div class="quality-header">
-                                <span class="quality-title">Quality Score</span>
-                                <div class="overall-rating">
-                                    <span style="color: var(--text-tertiary); font-size: 0.875rem;">Not yet reviewed</span>
-                                </div>
-                            </div>
-                        </div>
-                    `}
-                    
                     <div class="package-actions">
-                        <button class="btn btn-primary" onclick="showIntegrationCode(${pkg.id}, '${pkg.name}')">
-                            Use Package
-                        </button>
-                        <button class="btn btn-secondary" onclick="showSampleData(${pkg.id})">
-                            View Sample
-                        </button>
+                        ${purchaseButton}
+                        <button class="btn btn-secondary" onclick="showSampleData(${pkg.id})">View Sample</button>
                     </div>
                 </div>
             `;
         }
 
-        function formatDate(dateString) {
-            if (!dateString) return 'Never';
-            const date = new Date(dateString);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        function purchaseAccess(packageId, packageName) {
+            if (!currentUser) {
+                window.location.href = '/auth.html';
+                return;
+            }
             
-            if (diffHours < 1) return 'Recently';
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays < 7) return `${diffDays}d ago`;
-            return date.toLocaleDateString();
-        }
-
-        function showIntegrationCode(packageId, packageName) {
-            alert(`Integration for "${packageName}":\n\n` +
-                  `1. Mint token: POST /mint\n` +
-                  `2. Query package: GET /data/package/${packageId}\n` +
-                  `3. Use Authorization: Bearer YOUR_TOKEN header\n\n` +
-                  `See integration examples below.`);
+            // This would integrate with the existing token minting system
+            alert(`Purchase access for "${packageName}":\n\n1. Mint credits\n2. Use API key: ${currentUser.api_key}\n3. Access package data\n\nFull integration coming soon!`);
         }
 
         function showSampleData(packageId) {
@@ -770,10 +729,19 @@
 
         document.getElementById('category').addEventListener('change', loadPackages);
 
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.user-dropdown')) {
+                const dropdown = document.getElementById('user-dropdown');
+                if (dropdown) {
+                    dropdown.classList.remove('show');
+                }
+            }
+        });
+
         // Initialize
-        checkAPIStatus();
+        checkAuthStatus();
         loadPackages();
-        setInterval(checkAPIStatus, 30000);
     </script>
 </body>
 </html>
