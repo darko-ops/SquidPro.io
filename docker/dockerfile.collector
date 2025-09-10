@@ -1,0 +1,14 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Copy requirements for collector
+COPY requirements-collector.txt .
+RUN pip install --no-cache-dir -r requirements-collector.txt
+
+# Copy collector app
+COPY collector_crypto_app.py ./app.py
+
+EXPOSE 8200
+
+CMD ["uvicorn", "app:api", "--host", "0.0.0.0", "--port", "8200"]
