@@ -1,0 +1,10 @@
+WORKING BASELINE CONFIRMED Tue Sep  9 18:59:58 EDT 2025
+API: ✅ Health check passing
+Crypto: ✅ Real-time data at :8200
+Database: ✅ 32 packages loaded
+Frontend: ✅ Catalog UI loading
+CONTAINER ID   IMAGE                       COMMAND                  CREATED          STATUS          PORTS                                         NAMES
+cf6ee5eafd73   v1-stable                   "uvicorn app:api --h…"   13 minutes ago   Up 13 minutes   0.0.0.0:8001->8200/tcp, [::]:8001->8200/tcp   sleepy_lovelace
+930d3f7e2b99   squidpro-squidpro-api       "uvicorn app:api --h…"   2 days ago       Up 2 days       0.0.0.0:8100->8100/tcp, [::]:8100->8100/tcp   squidpro-squidpro-api-1
+fbf72b128679   postgres:15                 "docker-entrypoint.s…"   2 days ago       Up 2 days       0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp   squidpro-postgres-1
+71ffc46218c1   squidpro-collector-crypto   "uvicorn app:api --h…"   2 days ago       Up 2 days       0.0.0.0:8200->8200/tcp, [::]:8200->8200/tcp   squidpro-collector-crypto-1

@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - SquidPro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #fafafa;
+            --bg-tertiary: #f8f8f8;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --border-primary: #f0f0f0;
+            --border-secondary: #e0e0e0;
+            --accent: #00bcd4;
+            --success: #00c851;
+            --error: #ff5252;
+            --warning: #ff9800;
+            --sidebar-width: 280px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-weight: 300;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles (same as catalog) */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-primary);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-logo {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .logo {
+            font-family: 'Magz', 'Inter', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .sidebar-nav {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .nav-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 1.5rem 1rem;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 400;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent);
+            background: rgba(0, 188, 212, 0.05);
+        }
+
+        .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--accent);
+        }
+
+        .sidebar-user {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .user-greeting {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .user-info {
+            margin-bottom: 1.5rem;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .user-email {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .user-roles {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .role-badge {
+            padding: 0.2rem 0.5rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-secondary);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            border-radius: 12px;
+        }
+
+        .role-badge.supplier {
+            background: rgba(0, 188, 212, 0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .role-badge.reviewer {
+            background: rgba(0, 200, 81, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .api-key-section {
+            margin-bottom: 1rem;
+        }
+
+        .api-key-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .api-key-display {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-primary);
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-secondary);
+            font-family: monospace;
+            font-size: 0.7rem;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #00acc1;
+        }
+
+        .user-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .user-action-link {
+            padding: 0.5rem 0;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s ease;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .user-action-link:hover {
+            color: var(--accent);
+        }
+
+        .user-action-link:last-child {
+            border-bottom: none;
+        }
+
+        .logout-btn {
+            width: 100%;
+            background: none;
+            border: 1px solid var(--border-secondary);
+            padding: 0.75rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .quick-actions-sidebar {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .quick-action {
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-secondary);
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .quick-action:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .quick-action.primary {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .quick-action.primary:hover {
+            background: #00acc1;
+        }
+
+        .auth-required-sidebar {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .auth-required-sidebar h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .auth-required-sidebar p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .auth-btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: background 0.2s;
+        }
+
+        .auth-btn:hover {
+            background: #00acc1;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-secondary);
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .main {
+            padding: 3rem 0;
+        }
+
+        /* Profile Header */
+        .profile-header {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .profile-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .profile-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-secondary);
+            border-radius: 6px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Content Sections */
+        .profile-content {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .section-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .section-action {
+            padding: 0.5rem 1rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .section-action:hover {
+            background: #00acc1;
+        }
+
+        .section-content {
+            padding: 1.5rem;
+        }
+
+        /* Data Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .data-table th {
+            background: var(--bg-secondary);
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .data-table td {
+            font-size: 0.875rem;
+        }
+
+        .data-table tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        /* Status indicators */
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status-pending {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .status-completed {
+            background: rgba(0, 188, 212, 0.1);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        /* Empty states */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .empty-state p {
+            margin-bottom: 1.5rem;
+        }
+
+        .empty-state .section-action {
+            display: inline-block;
+            margin: 0;
+        }
+
+        /* Loading states */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-secondary);
+            border-top: 2px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Account Info Grid */
+        .account-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .info-group {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-secondary);
+        }
+
+        .info-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        .info-value.monospace {
+            font-family: monospace;
+            background: var(--bg-primary);
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-secondary);
+            word-break: break-all;
+        }
+
+        /* Debug Panel Styles */
+        .debug-panel {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 2rem;
+            border-left: 4px solid #007bff;
+        }
+
+        .debug-panel h3 {
+            margin-bottom: 1rem;
+            color: #007bff;
+        }
+
+        .debug-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .debug-btn {
+            padding: 0.5rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-secondary);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .debug-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .debug-info {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+        }
+
+        .status-success {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .status-error {
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        .status-warning {
+            background: rgba(255, 152, 0, 0.1);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .container {
+                padding: 0 1rem;
+            }
+
+            .profile-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .account-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-title {
+                font-size: 1.5rem;
+            }
+
+            .debug-actions {
+                flex-direction: column;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleSidebar()">
+        ☰
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <!-- Logo -->
+        <div class="sidebar-logo">
+            <a href="/" class="logo">SquidPro</a>
+        </div>
+
+        <!-- Navigation -->
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Navigation</div>
+            <a href="/catalog.html" class="nav-link">Data Catalog</a>
+            <a href="/profile.html" class="nav-link active">Profile</a>
+        </div>
+
+        <!-- Authentication Status -->
+        <div id="sidebar-auth-section">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+        <main class="main">
+            <div class="container">
+                <!-- Debug Panel -->
+                <div class="debug-panel">
+                    <h3>Profile Debug Panel</h3>
+                    <div class="debug-actions">
+                        <button class="debug-btn" onclick="debugUserState()">Check Auth State</button>
+                        <button class="debug-btn" onclick="testAPI()">Test API Connection</button>
+                        <button class="debug-btn" onclick="testUnifiedAuth()">Test Unified Auth</button>
+                        <button class="debug-btn" onclick="refreshProfile()">Refresh Profile</button>
+                    </div>
+                    <div class="debug-info">
+                        <strong>Auth System:</strong> Unified authentication with usr_ keys<br>
+                        <strong>Endpoints:</strong> Uses /users/me for all profile data<br>
+                        <strong>Expected Key Format:</strong> usr_xxxxx...
+                    </div>
+                    <div id="debug-status"></div>
+                </div>
+
+                <!-- Profile Header -->
+                <div class="profile-header">
+                    <h1 class="profile-title" id="profile-title">Loading...</h1>
+                    <p class="profile-subtitle" id="profile-subtitle">Loading user information...</p>
+                    
+                    <div class="profile-stats" id="profile-stats">
+                        <!-- Stats populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Account Information -->
+                <div class="section-card" id="account-info-section">
+                    <div class="section-header">
+                        <h2 class="section-title">Account Information</h2>
+                        <button class="section-action" onclick="editProfile()">Edit Profile</button>
+                    </div>
+                    <div class="section-content">
+                        <div class="account-info-grid" id="account-info-grid">
+                            <!-- Account info populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Role-based Content Sections -->
+                <div id="role-based-sections">
+                    <!-- Sections populated by JavaScript based on user roles -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8100';
+        let currentUser = null;
+        let userProfile = null;
+
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('show');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+            }
+        }
+
+        // Debug messaging
+        function showDebugMessage(message, type = 'info') {
+            const debugStatus = document.getElementById('debug-status');
+            const className = type === 'error' ? 'status-error' : 
+                             type === 'success' ? 'status-success' : 
+                             type === 'warning' ? 'status-warning' : 'status-info';
+            
+            debugStatus.innerHTML = `<div class="status-message ${className}"><pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">${message}</pre></div>`;
+            
+            // Clear after 10 seconds unless it's an error
+            if (type !== 'error') {
+                setTimeout(() => {
+                    debugStatus.innerHTML = '';
+                }, 10000);
+            }
+        }
+
+        // Debug functions
+        function debugUserState() {
+            console.log('=== USER STATE DEBUG ===');
+            console.log('Current User:', currentUser);
+            console.log('Session Token:', localStorage.getItem('squidpro_session'));
+            console.log('User Data:', localStorage.getItem('squidpro_user'));
+            
+            if (currentUser) {
+                console.log('API Key:', currentUser.api_key);
+                console.log('Roles:', currentUser.roles);
+                console.log('Key Format:', currentUser.api_key ? currentUser.api_key.substring(0, 4) : 'None');
+                
+                let message = `User Authentication State:\n\n`;
+                message += `✓ Logged in: ${currentUser.name} (${currentUser.email})\n`;
+                message += `✓ API Key: ${currentUser.api_key.substring(0, 20)}...\n`;
+                message += `✓ Key Format: ${currentUser.api_key.substring(0, 4)}\n`;
+                message += `✓ Roles: ${currentUser.roles.join(', ')}\n`;
+                message += `✓ Session Valid: ${!!localStorage.getItem('squidpro_session')}`;
+                
+                showDebugMessage(message, 'success');
+            } else {
+                showDebugMessage('❌ No user logged in. Please sign in first.', 'error');
+            }
+            console.log('=== END DEBUG ===');
+        }
+
+        async function testAPI() {
+            try {
+                console.log('Testing API connectivity...');
+                showDebugMessage('Testing API connectivity...', 'warning');
+                
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                console.log('API Health:', data);
+                
+                showDebugMessage(`✓ API is responding!\n\nHealth Check: ${JSON.stringify(data)}`, 'success');
+                return true;
+            } catch (error) {
+                console.error('API connectivity test failed:', error);
+                showDebugMessage(`❌ Cannot connect to SquidPro API\n\nURL: ${API_BASE}\nError: ${error.message}\n\nPlease check if the server is running.`, 'error');
+                return false;
+            }
+        }
+
+        async function testUnifiedAuth() {
+            if (!currentUser || !currentUser.api_key) {
+                showDebugMessage('❌ No API key found. Please sign in first.', 'error');
+                return false;
+            }
+
+            if (!currentUser.api_key.startsWith('usr_')) {
+                showDebugMessage(`❌ Invalid API key format\n\nExpected: usr_xxxxx...\nFound: ${currentUser.api_key.substring(0, 10)}...\n\nPlease register a new account via /auth.html`, 'error');
+                return false;
+            }
+
+            try {
+                console.log('Testing unified authentication...');
+                showDebugMessage('Testing unified authentication...', 'warning');
+                
+                const response = await fetch(`${API_BASE}/users/me`, {
+                    headers: {
+                        'X-API-Key': currentUser.api_key
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('User profile info:', data);
+                    
+                    let message = `✓ Authentication successful!\n\n`;
+                    message += `Name: ${data.name}\n`;
+                    message += `Type: ${data.type || 'unified'}\n`;
+                    message += `Roles: ${data.roles?.join(', ') || 'buyer'}\n`;
+                    message += `Balance: $${(data.balance || 0).toFixed(2)}`;
+                    
+                    if (data.roles?.includes('supplier')) {
+                        message += `\nPackages: ${data.package_count || 0}`;
+                    }
+                    
+                    if (data.roles?.includes('reviewer')) {
+                        message += `\nReviews: ${data.stats?.total_reviews || 0}`;
+                        message += `\nEarned: $${(data.stats?.total_earned || 0).toFixed(2)}`;
+                    }
+                    
+                    showDebugMessage(message, 'success');
+                    return true;
+                } else {
+                    const error = await response.json();
+                    console.error('Auth test failed:', error);
+                    showDebugMessage(`❌ Authentication failed (${response.status})\n\n${error.detail || 'Unknown error'}\n\nTry refreshing the page or signing in again.`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Auth test error:', error);
+                showDebugMessage(`❌ Authentication test failed\n\n${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        function refreshProfile() {
+            showDebugMessage('Refreshing profile data...', 'warning');
+            checkAuthStatus();
+        }
+
+        // Authentication functions
+        function getCurrentUser() {
+            const sessionToken = localStorage.getItem('squidpro_session');
+            const userData = localStorage.getItem('squidpro_user');
+            
+            if (sessionToken && userData) {
+                try {
+                    return JSON.parse(userData);
+                } catch (e) {
+                    localStorage.removeItem('squidpro_session');
+                    localStorage.removeItem('squidpro_user');
+                }
+            }
+            return null;
+        }
+
+        function checkAuthStatus() {
+            currentUser = getCurrentUser();
+            const authSection = document.getElementById('sidebar-auth-section');
+            
+            if (currentUser) {
+                // User is authenticated
+                authSection.innerHTML = `
+                    <div class="sidebar-user">
+                        <div class="user-greeting">Welcome back!</div>
+                        <div class="user-info">
+                            <div class="user-name">${currentUser.name}</div>
+                            <div class="user-email">${currentUser.email}</div>
+                            <div class="user-roles">
+                                ${currentUser.roles.map(role => 
+                                    `<span class="role-badge ${role}">${role}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        <div class="api-key-section">
+                            <div class="api-key-label">Your API Key</div>
+                            <div class="api-key-display">
+                                <span>${currentUser.api_key}</span>
+                                <button class="copy-btn" onclick="copyApiKey()">Copy</button>
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            <a href="#account-info-section" class="user-action-link">Account Details</a>
+                            <a href="#" class="user-action-link" onclick="showPayoutHistory()">Payout History</a>
+                        </div>
+                        <button class="logout-btn" onclick="logout()">Sign Out</button>
+                    </div>
+                `;
+                
+                updateRoleBasedQuickActions(currentUser.roles);
+                loadProfileData();
+            } else {
+                // User is not authenticated - redirect to auth page
+                window.location.href = '/auth.html';
+            }
+        }
+
+        function updateRoleBasedQuickActions(roles) {
+            const quickActionsHtml = generateQuickActions(roles);
+            if (quickActionsHtml) {
+                const authSection = document.getElementById('sidebar-auth-section');
+                authSection.innerHTML = `
+                    <div class="quick-actions-sidebar">
+                        <div class="nav-section-title">Quick Actions</div>
+                        ${quickActionsHtml}
+                    </div>
+                ` + authSection.innerHTML;
+            }
+        }
+
+        function generateQuickActions(roles) {
+            let actions = [];
+            
+            if (roles.includes('supplier')) {
+                actions.push('<button class="quick-action primary" onclick="uploadData()">Upload Data Package</button>');
+                actions.push('<button class="quick-action" onclick="managePackages()">Manage Packages</button>');
+            }
+            
+            if (roles.includes('reviewer')) {
+                actions.push('<button class="quick-action" onclick="viewReviewTasks()">Available Reviews</button>');
+                actions.push('<button class="quick-action" onclick="reviewDashboard()">Review Dashboard</button>');
+            }
+            
+            actions.push('<button class="quick-action" onclick="viewPurchases()">Purchase History</button>');
+            
+            return actions.join('');
+        }
+
+        // Profile data loading
+        async function loadProfileData() {
+            if (!currentUser) return;
+
+            try {
+                // Load unified profile data
+                const response = await fetch(`${API_BASE}/users/me`, {
+                    headers: { 'X-API-Key': currentUser.api_key }
+                });
+
+                if (response.ok) {
+                    userProfile = await response.json();
+                    updateProfileHeader();
+                    updateAccountInfo();
+                    loadRoleBasedSections();
+                } else {
+                    console.error('Failed to load profile data');
+                    updateProfileHeader();
+                    updateAccountInfo();
+                    loadRoleBasedSections();
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                updateProfileHeader();
+                updateAccountInfo();
+                loadRoleBasedSections();
+            }
+        }
+
+        function updateProfileHeader() {
+            const profile = userProfile || currentUser;
+            
+            document.getElementById('profile-title').textContent = `Welcome, ${profile.name}`;
+            document.getElementById('profile-subtitle').textContent = `${profile.type || 'User'} Account Dashboard`;
+
+            const statsContainer = document.getElementById('profile-stats');
+            const stats = [];
+
+            if (profile.type === 'supplier') {
+                stats.push(
+                    { label: 'Data Packages', value: profile.package_count || 0 },
+                    { label: 'Total Revenue', value: `$${(profile.total_earned || 0).toFixed(2)}` },
+                    { label: 'Current Balance', value: `$${(profile.balance || 0).toFixed(2)}` },
+                    { label: 'Account Status', value: profile.status || 'Active' }
+                );
+            } else if (profile.type === 'reviewer') {
+                stats.push(
+                    { label: 'Reviews Completed', value: profile.stats?.total_reviews || 0 },
+                    { label: 'Consensus Rate', value: `${((profile.stats?.consensus_rate || 0) * 100).toFixed(0)}%` },
+                    { label: 'Total Earned', value: `$${(profile.stats?.total_earned || 0).toFixed(2)}` },
+                    { label: 'Reputation', value: profile.reputation_level || 'Novice' }
+                );
+            } else {
+                stats.push(
+                    { label: 'Account Type', value: profile.roles?.join(', ') || 'Buyer' },
+                    { label: 'API Key Type', value: profile.api_key?.substring(0, 4) || 'N/A' },
+                    { label: 'Member Since', value: new Date().getFullYear() },
+                    { label: 'Status', value: 'Active' }
+                );
+            }
+
+            statsContainer.innerHTML = stats.map(stat => `
+                <div class="stat-item">
+                    <div class="stat-value">${stat.value}</div>
+                    <div class="stat-label">${stat.label}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateAccountInfo() {
+            const profile = userProfile || currentUser;
+            
+            const infoGrid = document.getElementById('account-info-grid');
+            infoGrid.innerHTML = `
+                <div class="info-group">
+                    <div class="info-label">Full Name</div>
+                    <div class="info-value">${profile.name}</div>
+                    <div class="info-label">Email Address</div>
+                    <div class="info-value">${profile.email}</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Account Roles</div>
+                    <div class="info-value">${(profile.roles || ['buyer']).join(', ')}</div>
+                    <div class="info-label">Member Since</div>
+                    <div class="info-value">${new Date().getFullYear()}</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Stellar Address</div>
+                    <div class="info-value monospace">${profile.stellar_address}</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">API Key</div>
+                    <div class="info-value monospace">${profile.api_key}</div>
+                </div>
+            `;
+        }
+
+        async function loadRoleBasedSections() {
+            const sectionsContainer = document.getElementById('role-based-sections');
+            let sectionsHTML = '';
+
+            if (currentUser.roles.includes('supplier')) {
+                sectionsHTML += await generateSupplierSections();
+            }
+
+            if (currentUser.roles.includes('reviewer')) {
+                sectionsHTML += await generateReviewerSections();
+            }
+
+            // Always show purchases section
+            sectionsHTML += await generatePurchasesSection();
+
+            sectionsContainer.innerHTML = sectionsHTML;
+        }
+
+        async function generateSupplierSections() {
+            try {
+                // Load supplier packages
+                const packagesResponse = await fetch(`${API_BASE}/packages`);
+                const allPackages = await packagesResponse.json();
+                const myPackages = allPackages.filter(pkg => pkg.supplier === currentUser.name);
+
+                return `
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h2 class="section-title">My Data Packages</h2>
+                            <button class="section-action" onclick="uploadData()">Upload New Package</button>
+                        </div>
+                        <div class="section-content">
+                            ${myPackages.length === 0 ? `
+                                <div class="empty-state">
+                                    <h3>No packages yet</h3>
+                                    <p>Start by uploading your first data package</p>
+                                    <button class="section-action" onclick="uploadData()">Upload Package</button>
+                                </div>
+                            ` : `
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Package Name</th>
+                                            <th>Category</th>
+                                            <th>Price per Query</th>
+                                            <th>Status</th>
+                                            <th>Created</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${myPackages.map(pkg => `
+                                            <tr>
+                                                <td>${pkg.name}</td>
+                                                <td>${pkg.category}</td>
+                                                <td>$${pkg.price_per_query}</td>
+                                                <td><span class="status-badge status-active">Active</span></td>
+                                                <td>${new Date().toLocaleDateString()}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            `}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                return `
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h2 class="section-title">My Data Packages</h2>
+                            <button class="section-action" onclick="uploadData()">Upload New Package</button>
+                        </div>
+                        <div class="section-content">
+                            <div class="loading">Loading packages...</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function generateReviewerSections() {
+            return `
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2 class="section-title">Review Activity</h2>
+                        <button class="section-action" onclick="viewReviewTasks()">View All Tasks</button>
+                    </div>
+                    <div class="section-content">
+                        <div class="empty-state">
+                            <h3>No active reviews</h3>
+                            <p>Check back later for new review opportunities</p>
+                            <button class="section-action" onclick="viewReviewTasks()">Browse Tasks</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function generatePurchasesSection() {
+            return `
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2 class="section-title">Purchase History</h2>
+                        <button class="section-action" onclick="showPayoutHistory()">View All</button>
+                    </div>
+                    <div class="section-content">
+                        <div class="empty-state">
+                            <h3>No purchases yet</h3>
+                            <p>Your data package purchases will appear here</p>
+                            <a href="/catalog.html" class="section-action">Browse Catalog</a>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Action handlers
+        function copyApiKey() {
+            if (currentUser) {
+                navigator.clipboard.writeText(currentUser.api_key).then(() => {
+                    const btn = event.target;
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                });
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('squidpro_session');
+            localStorage.removeItem('squidpro_user');
+            window.location.href = '/auth.html';
+        }
+
+        function editProfile() {
+            alert('Profile editing feature coming soon!');
+        }
+
+        function uploadData() {
+            window.location.href = '/upload.html';
+        }
+
+        function managePackages() {
+            alert('Package management interface coming soon!');
+        }
+
+        function viewReviewTasks() {
+            alert('Review tasks interface coming soon!');
+        }
+
+        function reviewDashboard() {
+            alert('Review dashboard coming soon!');
+        }
+
+        function viewPurchases() {
+            alert('Purchase history interface coming soon!');
+        }
+
+        function showPayoutHistory() {
+            alert('Payout history interface coming soon!');
+        }
+
+        // Handle window resize for responsive behavior
+        window.addEventListener('resize', () => {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('show');
+                if (!sidebar.classList.contains('collapsed')) {
+                    mainContent.classList.remove('expanded');
+                }
+            }
+        });
+
+        // Initialize
+        checkAuthStatus();
+    </script>
+</body>
+</html>

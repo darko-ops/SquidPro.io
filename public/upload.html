@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Data Package - SquidPro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #fafafa;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --border-primary: #f0f0f0;
+            --border-secondary: #e0e0e0;
+            --accent: #00bcd4;
+            --success: #00c851;
+            --error: #ff5252;
+            --warning: #ff9800;
+            --sidebar-width: 280px;
+        }
+
+        // Create a test CSV file for upload testing
+        function createTestCSV() {
+            const csvContent = `symbol,price,volume,timestamp
+BTC,67500.50,123.45,2025-01-01T10:00:00Z
+ETH,3500.25,456.78,2025-01-01T10:00:00Z
+ADA,0.85,789.12,2025-01-01T10:00:00Z`;
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const file = new File([blob], 'test_crypto_data.csv', { type: 'text/csv' });
+            
+            selectedFile = file;
+            renderFileList();
+            
+            // Pre-fill form with test data
+            document.getElementById('name').value = 'Test Crypto Data';
+            document.getElementById('description').value = 'Sample cryptocurrency price data for testing';
+            document.getElementById('category').value = 'financial';
+            document.getElementById('price').value = '0.005';
+            document.getElementById('tags').value = 'crypto, prices, test';
+            
+            showSuccess('Test CSV file created and form pre-filled! You can now test the upload.');
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-weight: 300;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-primary);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-logo {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .logo {
+            font-family: 'Magz', 'Inter', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .sidebar-nav {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .nav-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 1.5rem 1rem;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 400;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent);
+            background: rgba(0, 188, 212, 0.05);
+        }
+
+        .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--accent);
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-secondary);
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        .upload-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .upload-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .upload-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .upload-subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .upload-form {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-secondary);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: var(--bg-primary);
+            transition: border-color 0.2s ease;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-help {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .file-upload {
+            border: 2px dashed var(--border-secondary);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .file-upload:hover {
+            border-color: var(--accent);
+            background: rgba(0, 188, 212, 0.02);
+        }
+
+        .file-upload.dragover {
+            border-color: var(--accent);
+            background: rgba(0, 188, 212, 0.05);
+        }
+
+        .file-upload-icon {
+            font-size: 3rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .file-upload-text {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .file-upload-hint {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-list {
+            margin-top: 1rem;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-secondary);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .file-icon {
+            width: 2rem;
+            height: 2rem;
+            background: var(--accent);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .file-details h4 {
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .file-details p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .file-action {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border: 1px solid var(--border-secondary);
+            background: var(--bg-primary);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .file-action:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .file-action.danger:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .status-message {
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            font-size: 0.875rem;
+        }
+
+        .status-success {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .status-error {
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        .status-warning {
+            background: rgba(255, 152, 0, 0.1);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .upload-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid var(--border-secondary);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .btn.primary:hover {
+            background: #00acc1;
+        }
+
+        .btn.secondary {
+            background: var(--bg-secondary);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .upload-container {
+                padding: 1rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .upload-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleSidebar()">
+        ☰
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <!-- Logo -->
+        <div class="sidebar-logo">
+            <a href="/" class="logo">SquidPro</a>
+        </div>
+
+        <!-- Navigation -->
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Navigation</div>
+            <a href="/catalog.html" class="nav-link">Data Catalog</a>
+            <a href="/profile.html" class="nav-link">Profile</a>
+            <a href="/upload.html" class="nav-link active">Upload Data</a>
+        </div>
+
+        <!-- Authentication Status -->
+        <div id="sidebar-auth-section">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+        <div class="upload-container">
+            <div class="upload-header">
+                <h1 class="upload-title">Upload Data Package</h1>
+                <p class="upload-subtitle">Upload your CSV dataset to the SquidPro marketplace</p>
+            </div>
+
+            <div class="upload-form">
+                <!-- Debug Panel -->
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; margin-bottom: 2rem; border-left: 4px solid #007bff;">
+                    <h3 style="margin-bottom: 1rem; color: #007bff;">Debug Panel</h3>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <button type="button" class="btn secondary" onclick="debugUserState()" style="font-size: 0.8rem;">Check Auth</button>
+                        <button type="button" class="btn secondary" onclick="testAPI()" style="font-size: 0.8rem;">Test API</button>
+                        <button type="button" class="btn secondary" onclick="testSupplierAuth()" style="font-size: 0.8rem;">Test Unified Auth</button>
+                        <button type="button" class="btn secondary" onclick="createTestCSV()" style="font-size: 0.8rem;">Create Test CSV</button>
+                    </div>
+                    <div style="margin-top: 1rem; font-size: 0.8rem; color: #666;">
+                        <strong>Troubleshooting Steps:</strong><br>
+                        1. Check if you're logged in with supplier role enabled<br>
+                        2. Verify API connectivity<br>
+                        3. Test unified authentication<br>
+                        4. Try uploading a small CSV file<br><br>
+                        <strong>Common Issues:</strong><br>
+                        • "Invalid API key" → Your session may have expired, try logging in again<br>
+                        • "Cannot connect to API" → Make sure docker containers are running<br>
+                        • "Authentication failed" → Check that you have supplier role enabled<br>
+                        • "Upload feature only for suppliers" → Register with supplier role at /auth.html<br><br>
+                        Open browser console (F12) to see detailed logs
+                    </div>
+                </div>
+
+                <form id="upload-form">
+                    <div class="form-group">
+                        <label class="form-label" for="name">Dataset Name *</label>
+                        <input type="text" id="name" class="form-input" required placeholder="e.g., Crypto Market Data">
+                        <div class="form-help">Choose a descriptive name for your dataset</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="description">Description</label>
+                        <textarea id="description" class="form-textarea" placeholder="Describe what your dataset contains..."></textarea>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="category">Category *</label>
+                            <select id="category" class="form-select" required>
+                                <option value="">Select category</option>
+                                <option value="financial">Financial</option>
+                                <option value="weather">Weather</option>
+                                <option value="social">Social</option>
+                                <option value="news">News</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="price">Price per Query ($)</label>
+                            <input type="number" id="price" class="form-input" step="0.001" min="0" value="0.005">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="tags">Tags (comma-separated)</label>
+                        <input type="text" id="tags" class="form-input" placeholder="crypto, prices, real-time">
+                        <div class="form-help">Add tags to help users find your dataset</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Upload CSV File *</label>
+                        <div class="file-upload" onclick="document.getElementById('file-input').click()">
+                            <div class="file-upload-icon">📁</div>
+                            <div class="file-upload-text">Click to select file or drag and drop</div>
+                            <div class="file-upload-hint">CSV files only, max 10MB</div>
+                            <input type="file" id="file-input" class="file-input" accept=".csv" required>
+                        </div>
+
+                        <div class="file-list" id="file-list"></div>
+
+                        <div class="progress-bar" id="upload-progress" style="display: none;">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <div class="progress-text" id="progress-text" style="display: none;"></div>
+                    </div>
+
+                    <div id="upload-status"></div>
+                </form>
+            </div>
+
+            <div class="upload-actions">
+                <a href="/catalog.html" class="btn secondary">Cancel</a>
+                <button type="submit" class="btn primary" id="upload-btn" form="upload-form">
+                    <span id="upload-btn-text">Upload Dataset</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8100';
+        let currentUser = null;
+        let selectedFile = null;
+
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('show');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+            }
+        }
+
+        // Authentication functions
+        function getCurrentUser() {
+            const sessionToken = localStorage.getItem('squidpro_session');
+            const userData = localStorage.getItem('squidpro_user');
+            
+            if (sessionToken && userData) {
+                try {
+                    return JSON.parse(userData);
+                } catch (e) {
+                    localStorage.removeItem('squidpro_session');
+                    localStorage.removeItem('squidpro_user');
+                }
+            }
+            return null;
+        }
+
+        function checkAuthStatus() {
+            currentUser = getCurrentUser();
+            const authSection = document.getElementById('sidebar-auth-section');
+            
+            if (currentUser) {
+                // Check if user has supplier role
+                if (!currentUser.roles.includes('supplier')) {
+                    showError('Upload feature is only available for suppliers. Please register as a supplier first.');
+                    setTimeout(() => {
+                        window.location.href = '/profile.html';
+                    }, 3000);
+                    return;
+                }
+
+                authSection.innerHTML = `
+                    <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-primary);">
+                        <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 1rem;">Welcome back!</div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">${currentUser.name}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">${currentUser.email}</div>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                ${currentUser.roles.map(role => 
+                                    `<span style="padding: 0.2rem 0.5rem; background: ${role === 'supplier' ? 'rgba(0, 188, 212, 0.1)' : 'var(--bg-tertiary)'}; border: 1px solid ${role === 'supplier' ? 'var(--accent)' : 'var(--border-secondary)'}; font-size: 0.7rem; color: ${role === 'supplier' ? 'var(--accent)' : 'var(--text-secondary)'}; border-radius: 12px;">${role}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        <button onclick="logout()" style="width: 100%; background: none; border: 1px solid var(--border-secondary); padding: 0.75rem; color: var(--text-secondary); cursor: pointer; font-size: 0.875rem; border-radius: 4px; margin-top: 1rem; transition: all 0.2s;">Sign Out</button>
+                    </div>
+                `;
+            } else {
+                // User is not authenticated - redirect to auth page
+                window.location.href = '/auth.html';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('squidpro_session');
+            localStorage.removeItem('squidpro_user');
+            window.location.href = '/auth.html';
+        }
+
+        function showError(message) {
+            const statusDiv = document.getElementById('upload-status');
+            statusDiv.innerHTML = `<div class="status-message status-error"><strong>Error:</strong><br><pre style="white-space: pre-wrap; font-family: inherit; margin: 0.5rem 0 0 0;">${message}</pre></div>`;
+            setTimeout(() => statusDiv.innerHTML = '', 10000);
+        }
+
+        function showSuccess(message) {
+            const statusDiv = document.getElementById('upload-status');
+            statusDiv.innerHTML = `<div class="status-message status-success"><strong>Success:</strong><br><pre style="white-space: pre-wrap; font-family: inherit; margin: 0.5rem 0 0 0;">${message}</pre></div>`;
+        }
+
+        function showWarning(message) {
+            const statusDiv = document.getElementById('upload-status');
+            statusDiv.innerHTML = `<div class="status-message status-warning"><strong>Warning:</strong><br><pre style="white-space: pre-wrap; font-family: inherit; margin: 0.5rem 0 0 0;">${message}</pre></div>`;
+        }
+
+        // File upload handlers
+        document.getElementById('file-input').addEventListener('change', handleFileSelect);
+        
+        // Drag and drop
+        const fileUpload = document.querySelector('.file-upload');
+        fileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUpload.classList.add('dragover');
+        });
+        
+        fileUpload.addEventListener('dragleave', () => {
+            fileUpload.classList.remove('dragover');
+        });
+        
+        fileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+            handleFileSelect({ target: { files: e.dataTransfer.files } });
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                showError('Please select a CSV file.');
+                return;
+            }
+
+            // Validate file size (10MB max)
+            if (file.size > 10 * 1024 * 1024) {
+                showError('File too large. Maximum size is 10MB.');
+                return;
+            }
+
+            selectedFile = file;
+            renderFileList();
+        }
+
+        function renderFileList() {
+            const fileList = document.getElementById('file-list');
+            
+            if (selectedFile) {
+                fileList.innerHTML = `
+                    <div class="file-item">
+                        <div class="file-info">
+                            <div class="file-icon">CSV</div>
+                            <div class="file-details">
+                                <h4>${selectedFile.name}</h4>
+                                <p>${formatFileSize(selectedFile.size)}</p>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button type="button" class="file-action danger" onclick="removeFile()">Remove</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                fileList.innerHTML = '';
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function removeFile() {
+            selectedFile = null;
+            document.getElementById('file-input').value = '';
+            renderFileList();
+        }
+
+        // Debug function to check current user state
+        function debugUserState() {
+            console.log('Current User:', currentUser);
+            console.log('Session Token:', localStorage.getItem('squidpro_session'));
+            console.log('User Data:', localStorage.getItem('squidpro_user'));
+            
+            if (currentUser) {
+                console.log('API Key:', currentUser.api_key);
+                console.log('Roles:', currentUser.roles);
+                console.log('Has supplier role:', currentUser.roles.includes('supplier'));
+                console.log('API Key starts with usr_:', currentUser.api_key && currentUser.api_key.startsWith('usr_'));
+                
+                let message = `User: ${currentUser.name} (${currentUser.email})\n`;
+                message += `Roles: ${currentUser.roles.join(', ')}\n`;
+                message += `API Key: ${currentUser.api_key ? currentUser.api_key.substring(0, 20) + '...' : 'None'}\n`;
+                message += `Is Supplier: ${currentUser.roles.includes('supplier')}\n`;
+                message += `Key Format: ${currentUser.api_key ? currentUser.api_key.substring(0, 4) : 'None'}`;
+                
+                if (currentUser.roles.includes('supplier') && currentUser.api_key) {
+                    showSuccess('Authentication looks good!\n\n' + message);
+                } else {
+                    showError('Authentication issues detected!\n\n' + message);
+                }
+            } else {
+                showError('No user logged in. Please sign in first.');
+            }
+        }
+
+        // Test API connectivity
+        async function testAPI() {
+            try {
+                console.log('Testing API connectivity...');
+                showWarning('Testing API connectivity...');
+                
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                console.log('API Health:', data);
+                
+                showSuccess(`API is responding! Health check: ${JSON.stringify(data)}`);
+                return true;
+            } catch (error) {
+                console.error('API connectivity test failed:', error);
+                showError(`Cannot connect to SquidPro API at ${API_BASE}. Error: ${error.message}\n\nPlease check if the server is running.`);
+                return false;
+            }
+        }
+
+        // Test supplier authentication
+        async function testSupplierAuth() {
+            if (!currentUser || !currentUser.api_key) {
+                showError('No API key found. Please sign in first.');
+                return false;
+            }
+
+            try {
+                console.log('Testing supplier authentication...');
+                showWarning('Testing supplier authentication...');
+                
+                const response = await fetch(`${API_BASE}/suppliers/me`, {
+                    headers: {
+                        'X-API-Key': currentUser.api_key
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Supplier info:', data);
+                    showSuccess(`Authentication successful!\n\nSupplier: ${data.name}\nPackages: ${data.package_count}\nBalance: ${data.balance}`);
+                    return true;
+                } else {
+                    const error = await response.json();
+                    console.error('Auth test failed:', error);
+                    showError(`Authentication failed (${response.status}): ${error.detail || 'Unknown error'}`);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Auth test error:', error);
+                showError(`Authentication test failed: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Form submission
+        document.getElementById('upload-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            console.log('=== UPLOAD DEBUG START ===');
+            debugUserState();
+
+            // Test API connectivity first
+            if (!(await testAPI())) {
+                return;
+            }
+
+            // Check authentication
+            if (!currentUser || !currentUser.api_key) {
+                showError('Please sign in to upload datasets.');
+                return;
+            }
+
+            // Check supplier role
+            if (!currentUser.roles.includes('supplier')) {
+                showError('Upload feature is only available for suppliers.');
+                return;
+            }
+
+            // Test authentication
+            if (!(await testSupplierAuth())) {
+                return;
+            }
+
+            if (!selectedFile) {
+                showError('Please select a CSV file to upload.');
+                return;
+            }
+
+            const uploadBtn = document.getElementById('upload-btn');
+            const uploadBtnText = document.getElementById('upload-btn-text');
+            const progressBar = document.getElementById('upload-progress');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            
+            // Disable form
+            uploadBtn.disabled = true;
+            uploadBtnText.innerHTML = '<span class="spinner"></span>Uploading...';
+            progressBar.style.display = 'block';
+            progressText.style.display = 'block';
+            progressText.textContent = 'Preparing upload...';
+
+            try {
+                // Prepare form data
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('name', document.getElementById('name').value);
+                formData.append('description', document.getElementById('description').value || '');
+                formData.append('category', document.getElementById('category').value);
+                formData.append('price_per_query', document.getElementById('price').value);
+                formData.append('tags', document.getElementById('tags').value || '');
+
+                console.log('Form data prepared:');
+                console.log('- File:', selectedFile.name, selectedFile.size, 'bytes');
+                console.log('- Name:', document.getElementById('name').value);
+                console.log('- Category:', document.getElementById('category').value);
+                console.log('- Price:', document.getElementById('price').value);
+                console.log('- API Key:', currentUser.api_key.substring(0, 10) + '...');
+
+                // Upload file
+                progressText.textContent = 'Uploading file...';
+                progressFill.style.width = '30%';
+
+                console.log('Making API request to:', `${API_BASE}/users/upload`);
+
+                const response = await fetch(`${API_BASE}/users/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'X-API-Key': currentUser.api_key
+                    },
+                    body: formData
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+                progressFill.style.width = '70%';
+                progressText.textContent = 'Processing upload...';
+
+                let result;
+                try {
+                    result = await response.json();
+                    console.log('Response data:', result);
+                } catch (jsonError) {
+                    console.error('Failed to parse JSON response:', jsonError);
+                    const text = await response.text();
+                    console.log('Raw response:', text);
+                    showError('Server returned invalid response format.');
+                    return;
+                }
+
+                if (response.ok) {
+                    progressFill.style.width = '100%';
+                    progressText.textContent = 'Upload complete!';
+                    
+                    showSuccess(`Dataset "${result.package_name || document.getElementById('name').value}" uploaded successfully! Package ID: ${result.package_id}`);
+                    
+                    // Show PII analysis if available
+                    if (result.pii_analysis) {
+                        const piiInfo = result.pii_analysis;
+                        if (piiInfo.data_cleaned) {
+                            showWarning(`PII detected and cleaned: ${piiInfo.actions_taken.join(', ')}`);
+                        } else if (piiInfo.findings_total > 0) {
+                            showWarning(`${piiInfo.findings_total} potential PII findings detected but allowed.`);
+                        }
+                    }
+
+                    // Reset form after delay
+                    setTimeout(() => {
+                        document.getElementById('upload-form').reset();
+                        removeFile();
+                        document.getElementById('upload-status').innerHTML = '';
+                        progressBar.style.display = 'none';
+                        progressText.style.display = 'none';
+                    }, 3000);
+                    
+                } else {
+                    console.error('Upload failed with status:', response.status);
+                    console.error('Error details:', result);
+                    
+                    // Handle specific error types
+                    if (result.error === 'PII_DETECTED') {
+                        showError(`Upload blocked due to PII detection: ${Object.keys(result.pii_found).join(', ')}. ${result.recommendation}`);
+                    } else {
+                        showError(result.detail || result.message || `Upload failed with status ${response.status}`);
+                    }
+                }
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                showError(`Network error during upload: ${error.message}`);
+            } finally {
+                // Re-enable form
+                uploadBtn.disabled = false;
+                uploadBtnText.textContent = 'Upload Dataset';
+                if (!document.querySelector('.status-success')) {
+                    progressBar.style.display = 'none';
+                    progressText.style.display = 'none';
+                }
+                console.log('=== UPLOAD DEBUG END ===');
+            }
+        });
+
+        // Handle window resize for responsive behavior
+        window.addEventListener('resize', () => {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('show');
+                if (!sidebar.classList.contains('collapsed')) {
+                    mainContent.classList.remove('expanded');
+                }
+            }
+        });
+
+        // Initialize
+        checkAuthStatus();
+    </script>
+</body>
+</html>

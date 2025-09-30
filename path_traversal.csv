@@ -1,0 +1,3 @@
+filename,path
+"test","../../../etc/passwd"
+"malicious","../../../../etc/shadow"

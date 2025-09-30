@@ -1,0 +1,1984 @@
+import os, time, uuid, jwt, httpx, asyncpg, json
+import hashlib, re, asyncio, logging, secrets, statistics
+from datetime import datetime, timedelta
+from enum import Enum
+from decimal import Decimal
+from io import StringIO
+from contextlib import asynccontextmanager
+from typing import Optional, List, Dict, Any, Tuple
+
+from fastapi import FastAPI, Header, HTTPException, Query, File, UploadFile, Form
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field, validator
+
+from stellar_sdk import Keypair, Network, Server, TransactionBuilder, Asset
+from stellar_sdk.exceptions import SdkError
+
+import pandas as pd
+import bcrypt
+
+# Create uploads directory
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+logging.basicConfig(level=logging.INFO)
+
+# Configuration
+SECRET = os.getenv("SQUIDPRO_SECRET", "supersecret_change_me")
+PRICE = float(os.getenv("PRICE_PER_QUERY_USD", "0.005"))
+SPLIT_SUPPLIER = float(os.getenv("SUPPLIER_SPLIT", "0.7"))
+SPLIT_REVIEWER = float(os.getenv("REVIEWER_SPLIT", "0.2"))
+SPLIT_SQUIDPRO = float(os.getenv("SQUIDPRO_SPLIT", "0.1"))
+COLLECTOR = os.getenv("COLLECTOR_CRYPTO_URL", "http://collector-crypto:8200")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://squidpro:password@postgres:5432/squidpro")
+
+# Stellar configuration
+STELLAR_SECRET_KEY = os.getenv("STELLAR_SECRET_KEY", "SAMPLEKEY123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890AB")
+STELLAR_NETWORK = os.getenv("STELLAR_NETWORK", "testnet")
+USDC_ASSET_CODE = os.getenv("USDC_ASSET_CODE", "USDC")
+USDC_ASSET_ISSUER = os.getenv("USDC_ASSET_ISSUER", "GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5")
+
+# Stellar setup
+try:
+    stellar_keypair = Keypair.from_secret(STELLAR_SECRET_KEY)
+    stellar_server = Server("https://horizon-testnet.stellar.org") if STELLAR_NETWORK == "testnet" else Server("https://horizon.stellar.org")
+    usdc_asset = Asset(USDC_ASSET_CODE, USDC_ASSET_ISSUER)
+    logging.info(f"Stellar initialized - Public Key: {stellar_keypair.public_key}")
+except Exception as e:
+    logging.error(f"Failed to initialize Stellar: {e}")
+    stellar_keypair = None
+
+# Global variables
+db_pool = None
+active_sessions = {}
+
+# Enums
+class PIIType(Enum):
+    EMAIL = "email"
+    PHONE = "phone"
+    SSN = "ssn"
+    CREDIT_CARD = "credit_card"
+    IP_ADDRESS = "ip_address"
+    USERNAME = "username"
+    PASSWORD = "password"
+
+class PIIAction(Enum):
+    BLOCK = "block"
+    REDACT = "redact"
+    MASK = "mask"
+    LOG_ONLY = "log_only"
+
+# Pydantic Models
+class UserRegistration(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    name: str = Field(..., min_length=1, max_length=255)
+    email: str = Field(..., regex=r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+    password: str = Field(..., min_length=8, max_length=128)
+    repeat_password: str
+    stellar_address: str = Field(..., min_length=56, max_length=56)
+    roles: List[str] = Field(..., min_items=1)  # ['supplier', 'buyer', 'reviewer']
+    
+    @validator('repeat_password')
+    def passwords_match(cls, v, values):
+        if 'password' in values and v != values['password']:
+            raise ValueError('Passwords do not match')
+        return v
+    
+    @validator('roles')
+    def validate_roles(cls, v):
+        valid_roles = {'supplier', 'buyer', 'reviewer'}
+        for role in v:
+            if role not in valid_roles:
+                raise ValueError(f'Invalid role: {role}')
+        return v
+
+class LoginCredentials(BaseModel):
+    username: str
+    password: str
+
+class UserSession(BaseModel):
+    user_id: int
+    username: str
+    name: str
+    email: str
+    roles: List[str]
+    api_key: str
+    stellar_address: str
+
+class MintReq(BaseModel):
+    agent_id: str
+    scope: str = "data.read.price"
+    credits: float = Field(..., ge=0.001, le=1000.0)
+
+class ReviewerRegistration(BaseModel):
+    name: str
+    stellar_address: str
+    email: Optional[str] = None
+    specializations: List[str] = []
+
+class ReviewSubmission(BaseModel):
+    quality_score: int
+    timeliness_score: int
+    schema_compliance_score: int
+    overall_rating: int
+    findings: str
+    evidence: Optional[Dict[str, Any]] = None
+
+class SupplierRegistration(BaseModel):
+    name: str
+    email: str
+    stellar_address: str
+
+class DataPackage(BaseModel):
+    name: str
+    description: str
+    category: str
+    endpoint_url: str
+    price_per_query: float = 0.005
+    sample_data: Optional[Dict[str, Any]] = None
+    schema_definition: Optional[Dict[str, Any]] = None
+    rate_limit: int = 1000
+    tags: List[str] = []
+
+class DatasetUpload(BaseModel):
+    name: str
+    description: str
+    category: str
+    price_per_query: float = 0.005
+    tags: List[str] = []
+    data_format: str
+    update_frequency: str = 'static'
+    sample_size: int = 10
+
+# PII Detection Configuration
+PII_PATTERNS = {
+    PIIType.EMAIL: {
+        'pattern': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+        'description': 'Email addresses',
+        'action': PIIAction.BLOCK
+    },
+    PIIType.PHONE: {
+        'pattern': r'(\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})',
+        'description': 'Phone numbers',
+        'action': PIIAction.MASK
+    },
+    PIIType.SSN: {
+        'pattern': r'\b\d{3}-?\d{2}-?\d{4}\b',
+        'description': 'Social Security Numbers',
+        'action': PIIAction.BLOCK
+    },
+    PIIType.CREDIT_CARD: {
+        'pattern': r'\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3[0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b',
+        'description': 'Credit card numbers',
+        'action': PIIAction.BLOCK
+    },
+    PIIType.IP_ADDRESS: {
+        'pattern': r'\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b',
+        'description': 'IP addresses',
+        'action': PIIAction.LOG_ONLY
+    },
+    PIIType.USERNAME: {
+        'pattern': r'\b(?:user|username|login|account)[:=]\s*([A-Za-z0-9_.-]+)\b',
+        'description': 'Username/login credentials',
+        'action': PIIAction.REDACT
+    },
+    PIIType.PASSWORD: {
+        'pattern': r'\b(?:pass|password|pwd)[:=]\s*([^\s,;|]+)\b',
+        'description': 'Passwords',
+        'action': PIIAction.BLOCK
+    }
+}
+
+# Helper Functions
+def hash_password(password: str) -> str:
+    """Hash password using bcrypt"""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify password against hash"""
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def generate_session_token() -> str:
+    """Generate secure session token"""
+    return secrets.token_urlsafe(32)
+
+def _auth(auth_header: Optional[str]):
+    if not auth_header or not auth_header.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Missing Bearer token")
+    token = auth_header.split(" ", 1)[1]
+    try:
+        claims = jwt.decode(token, SECRET, algorithms=["HS256"])
+    except jwt.PyJWTError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+    return claims
+
+async def update_balances(supplier_amt: float, reviewer_pool: float, squidpro_amt: float, supplier_id: str = "1"):
+    """Update balances for supplier, reviewer pool, and squidpro treasury"""
+    async with db_pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO balances (user_type, user_id, balance_usd) 
+            VALUES ('supplier', $1, $2)
+            ON CONFLICT (user_type, user_id) 
+            DO UPDATE SET balance_usd = balances.balance_usd + $2
+        """, supplier_id, supplier_amt)
+        
+        await conn.execute("""
+            INSERT INTO balances (user_type, user_id, balance_usd) 
+            VALUES ('reviewer', 'demo_reviewer_pool', $1)
+            ON CONFLICT (user_type, user_id) 
+            DO UPDATE SET balance_usd = balances.balance_usd + $1
+        """, reviewer_pool)
+        
+        await conn.execute("""
+            INSERT INTO balances (user_type, user_id, balance_usd) 
+            VALUES ('squidpro', 'treasury', $1)
+            ON CONFLICT (user_type, user_id) 
+            DO UPDATE SET balance_usd = balances.balance_usd + $1
+        """, squidpro_amt)
+
+async def log_pii_detection(conn, supplier_id: int, filename: str, analysis: Dict):
+    """Log PII detection results to database"""
+    for pii_type, count in analysis['findings_by_type'].items():
+        action = 'block' if analysis['blocking_issues'] else 'allow'
+        blocked = len(analysis['blocking_issues']) > 0
+        
+        await conn.execute("""
+            INSERT INTO pii_detection_log 
+            (supplier_id, filename, pii_type, action_taken, findings_count, blocked, detection_details)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+        """, supplier_id, filename, pii_type, action, count, blocked, json.dumps(analysis))
+
+async def authenticate_user_session(session_token: str) -> UserSession:
+    """Authenticate user by session token"""
+    if not session_token or session_token not in active_sessions:
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
+    
+    session = active_sessions[session_token]
+    
+    if datetime.now() > session["expires_at"]:
+        del active_sessions[session_token]
+        raise HTTPException(status_code=401, detail="Session expired")
+    
+    return session["data"]
+
+async def authenticate_supplier(api_key: str):
+    """Authenticate supplier by API key"""
+    if not api_key or not api_key.startswith('sup_'):
+        raise HTTPException(status_code=401, detail="Invalid supplier API key")
+    
+    async with db_pool.acquire() as conn:
+        supplier = await conn.fetchrow("""
+            SELECT id, name, status FROM suppliers WHERE api_key = $1 AND status = 'active'
+        """, api_key)
+        
+        if not supplier:
+            raise HTTPException(status_code=401, detail="Invalid or inactive supplier")
+        
+        return supplier
+
+async def authenticate_reviewer(api_key: str):
+    """Authenticate reviewer by API key"""
+    if not api_key or not api_key.startswith('rev_'):
+        raise HTTPException(status_code=401, detail="Invalid reviewer API key")
+    
+    async with db_pool.acquire() as conn:
+        reviewer = await conn.fetchrow("""
+            SELECT r.id, r.name, r.reputation_level, rs.consensus_rate, rs.accuracy_score
+            FROM reviewers r
+            LEFT JOIN reviewer_stats rs ON r.id = rs.reviewer_id
+            WHERE r.api_key = $1
+        """, api_key)
+        
+        if not reviewer:
+            raise HTTPException(status_code=401, detail="Invalid reviewer API key")
+        
+        return reviewer
+
+async def add_unique_constraints():
+    """Add unique constraints to database tables"""
+    async with db_pool.acquire() as conn:
+        constraints = [
+            "ALTER TABLE suppliers ADD CONSTRAINT IF NOT EXISTS suppliers_email_unique UNIQUE (email)",
+            "ALTER TABLE suppliers ADD CONSTRAINT IF NOT EXISTS suppliers_name_unique UNIQUE (name)", 
+            "ALTER TABLE suppliers ADD CONSTRAINT IF NOT EXISTS suppliers_stellar_address_unique UNIQUE (stellar_address)",
+            "ALTER TABLE suppliers ADD CONSTRAINT IF NOT EXISTS suppliers_api_key_unique UNIQUE (api_key)",
+            "ALTER TABLE reviewers ADD CONSTRAINT IF NOT EXISTS reviewers_email_unique UNIQUE (email)",
+            "ALTER TABLE reviewers ADD CONSTRAINT IF NOT EXISTS reviewers_name_unique UNIQUE (name)",
+            "ALTER TABLE reviewers ADD CONSTRAINT IF NOT EXISTS reviewers_stellar_address_unique UNIQUE (stellar_address)", 
+            "ALTER TABLE reviewers ADD CONSTRAINT IF NOT EXISTS reviewers_api_key_unique UNIQUE (api_key)"
+        ]
+        
+        for constraint_sql in constraints:
+            try:
+                await conn.execute(constraint_sql)
+                print(f"✅ Applied constraint: {constraint_sql}")
+            except Exception as e:
+                if "already exists" in str(e):
+                    print(f"⏭️ Constraint already exists: {constraint_sql}")
+                else:
+                    print(f"❌ Failed to apply constraint: {constraint_sql} - {e}")
+
+# PII Detector Class
+class PIIDetector:
+    def __init__(self, config: Optional[Dict] = None):
+        self.config = config or PII_PATTERNS
+        self.detection_log = []
+    
+    def scan_text(self, text: str, context: str = "") -> List[Dict]:
+        """Scan text for PII patterns"""
+        findings = []
+        
+        for pii_type, pattern_config in self.config.items():
+            pattern = pattern_config['pattern']
+            matches = re.finditer(pattern, str(text), re.IGNORECASE)
+            
+            for match in matches:
+                finding = {
+                    'type': pii_type.value,
+                    'pattern': pattern_config['description'],
+                    'action': pattern_config['action'].value,
+                    'match': match.group(),
+                    'position': match.span(),
+                    'context': context,
+                    'confidence': self._calculate_confidence(pii_type, match.group())
+                }
+                findings.append(finding)
+        
+        return findings
+    
+    def scan_dataframe(self, df: pd.DataFrame) -> Dict:
+        """Scan entire dataframe for PII"""
+        all_findings = []
+        
+        for column in df.columns:
+            for idx, value in df[column].items():
+                if pd.notna(value):
+                    findings = self.scan_text(str(value), f"Column: {column}, Row: {idx}")
+                    all_findings.extend(findings)
+        
+        analysis = {
+            'total_findings': len(all_findings),
+            'findings_by_type': {},
+            'findings_by_action': {},
+            'blocking_issues': [],
+            'all_findings': all_findings
+        }
+        
+        for finding in all_findings:
+            pii_type = finding['type']
+            action = finding['action']
+            
+            if pii_type not in analysis['findings_by_type']:
+                analysis['findings_by_type'][pii_type] = 0
+            analysis['findings_by_type'][pii_type] += 1
+            
+            if action not in analysis['findings_by_action']:
+                analysis['findings_by_action'][action] = 0
+            analysis['findings_by_action'][action] += 1
+            
+            if action == PIIAction.BLOCK.value:
+                analysis['blocking_issues'].append(finding)
+        
+        return analysis
+    
+    def clean_dataframe(self, df: pd.DataFrame, analysis: Dict) -> Tuple[pd.DataFrame, Dict]:
+        """Clean dataframe based on PII findings"""
+        cleaned_df = df.copy()
+        cleaning_log = []
+        
+        for finding in analysis['all_findings']:
+            action = finding['action']
+            
+            if action == PIIAction.REDACT.value:
+                column, row = self._parse_context(finding['context'])
+                if column and row is not None:
+                    original_value = str(cleaned_df.loc[row, column])
+                    cleaned_value = re.sub(re.escape(finding['match']), '[REDACTED]', original_value)
+                    cleaned_df.loc[row, column] = cleaned_value
+                    cleaning_log.append(f"Redacted {finding['type']} in {column}, row {row}")
+            
+            elif action == PIIAction.MASK.value:
+                column, row = self._parse_context(finding['context'])
+                if column and row is not None:
+                    original_value = str(cleaned_df.loc[row, column])
+                    masked_value = self._mask_value(finding['match'], finding['type'])
+                    cleaned_value = original_value.replace(finding['match'], masked_value)
+                    cleaned_df.loc[row, column] = cleaned_value
+                    cleaning_log.append(f"Masked {finding['type']} in {column}, row {row}")
+        
+        return cleaned_df, {'actions_taken': cleaning_log}
+    
+    def _calculate_confidence(self, pii_type: PIIType, match: str) -> float:
+        """Calculate confidence score for PII detection"""
+        if pii_type == PIIType.EMAIL:
+            return 0.95 if '@' in match and '.' in match else 0.7
+        elif pii_type == PIIType.SSN:
+            return 0.9 if '-' in match else 0.8
+        elif pii_type == PIIType.PHONE:
+            return 0.85 if len(re.sub(r'[^\d]', '', match)) == 10 else 0.7
+        else:
+            return 0.8
+    
+    def _parse_context(self, context: str) -> Tuple[Optional[str], Optional[int]]:
+        """Parse context string to extract column and row"""
+        try:
+            parts = context.split(', ')
+            column = parts[0].replace('Column: ', '') if len(parts) > 0 else None
+            row = int(parts[1].replace('Row: ', '')) if len(parts) > 1 else None
+            return column, row
+        except:
+            return None, None
+    
+    def _mask_value(self, value: str, pii_type: str) -> str:
+        """Apply masking to PII values"""
+        if pii_type == 'phone':
+            digits = re.sub(r'[^\d]', '', value)
+            if len(digits) == 10:
+                return f"({digits[:3]}) ***-{digits[-4:]}"
+        elif pii_type == 'ssn':
+            digits = re.sub(r'[^\d]', '', value)
+            if len(digits) == 9:
+                return f"***-**-{digits[-4:]}"
+        
+        return '*' * (len(value) - 4) + value[-4:] if len(value) > 4 else '****'
+
+# Stellar Payment Functions
+async def send_stellar_payment(recipient_address: str, amount_usd: float) -> str:
+    """Send XLM payment via Stellar and return transaction hash"""
+    if not stellar_keypair:
+        raise Exception("Stellar not properly initialized")
+    
+    try:
+        source_account = stellar_server.load_account(stellar_keypair.public_key)
+        
+        transaction = (
+            TransactionBuilder(
+                source_account=source_account,
+                network_passphrase=Network.TESTNET_NETWORK_PASSPHRASE if STELLAR_NETWORK == "testnet" else Network.PUBLIC_NETWORK_PASSPHRASE,
+                base_fee=100,
+            )
+            .add_text_memo(f"SquidPro payout ${amount_usd:.6f}")
+            .append_payment_op(
+                destination=recipient_address,
+                asset=Asset.native(),
+                amount=str(amount_usd)
+            )
+            .set_timeout(30)
+            .build()
+        )
+        
+        transaction.sign(stellar_keypair)
+        response = stellar_server.submit_transaction(transaction)
+        
+        return response["hash"]
+        
+    except SdkError as e:
+        logging.error(f"Stellar payment failed: {e}")
+        raise Exception(f"Payment failed: {str(e)}")
+    except Exception as e:
+        logging.error(f"Unexpected payment error: {e}")
+        raise Exception(f"Payment failed: {str(e)}")
+
+async def get_user_stellar_address(conn, user_type: str, user_id: str) -> Optional[str]:
+    """Get user's Stellar address from database"""
+    if user_type == "supplier":
+        row = await conn.fetchrow("SELECT stellar_address FROM suppliers WHERE id = $1", int(user_id))
+    elif user_type == "reviewer":
+        row = await conn.fetchrow("SELECT stellar_address FROM reviewers WHERE id = $1", int(user_id))
+    else:
+        return None
+    
+    return row["stellar_address"] if row else None
+
+async def process_payouts():
+    """Check for accounts ready for payout and process them"""
+    if not stellar_keypair:
+        logging.warning("Stellar not initialized, skipping payouts")
+        return {"processed": 0, "message": "Stellar not configured"}
+    
+    async with db_pool.acquire() as conn:
+        eligible_accounts = await conn.fetch("""
+            SELECT user_type, user_id, balance_usd, payout_threshold_usd
+            FROM balances 
+            WHERE balance_usd >= payout_threshold_usd AND balance_usd > 0
+        """)
+        
+        processed = 0
+        results = []
+        
+        for account in eligible_accounts:
+            user_type = account["user_type"]
+            user_id = account["user_id"]
+            balance = float(account["balance_usd"])
+            
+            if user_type == "squidpro":
+                continue
+                
+            recipient_address = await get_user_stellar_address(conn, user_type, user_id)
+            if not recipient_address:
+                results.append({
+                    "user": f"{user_type}/{user_id}",
+                    "status": "skipped",
+                    "reason": "No Stellar address on file"
+                })
+                continue
+            
+            try:
+                tx_hash = await send_stellar_payment(recipient_address, balance)
+                
+                await conn.execute("""
+                    INSERT INTO payout_history (stellar_tx_hash, recipient_address, amount_usd, user_type, user_id)
+                    VALUES ($1, $2, $3, $4, $5)
+                """, tx_hash, recipient_address, balance, user_type, user_id)
+                
+                await conn.execute("""
+                    UPDATE balances SET balance_usd = 0 WHERE user_type = $1 AND user_id = $2
+                """, user_type, user_id)
+                
+                processed += 1
+                results.append({
+                    "user": f"{user_type}/{user_id}",
+                    "amount": balance,
+                    "tx_hash": tx_hash,
+                    "status": "success"
+                })
+                
+                logging.info(f"Paid out ${balance} to {user_type}/{user_id} - TX: {tx_hash}")
+                
+            except Exception as e:
+                results.append({
+                    "user": f"{user_type}/{user_id}",
+                    "status": "failed",
+                    "error": str(e)
+                })
+                logging.error(f"Payout failed for {user_type}/{user_id}: {e}")
+        
+        return {"processed": processed, "results": results}
+
+# Review Processing Functions
+async def process_review_consensus(conn, task_id: int):
+    """Process consensus when enough reviews are submitted"""
+    submissions = await conn.fetch("""
+        SELECT * FROM review_submissions WHERE task_id = $1
+    """, task_id)
+    
+    if len(submissions) < 2:
+        return
+    
+    quality_scores = [s["quality_score"] for s in submissions]
+    timeliness_scores = [s["timeliness_score"] for s in submissions]
+    schema_scores = [s["schema_compliance_score"] for s in submissions]
+    overall_ratings = [s["overall_rating"] for s in submissions]
+    
+    median_overall = statistics.median(overall_ratings)
+    consensus_threshold = 2
+    
+    task = await conn.fetchrow("SELECT * FROM review_tasks WHERE id = $1", task_id)
+    reward_per_reviewer = float(task["reward_pool_usd"]) / len(submissions)
+    
+    for submission in submissions:
+        is_consensus = abs(submission["overall_rating"] - median_overall) <= consensus_threshold
+        payout = reward_per_reviewer * (1.2 if is_consensus else 0.8)
+        
+        await conn.execute("""
+            UPDATE review_submissions 
+            SET is_consensus = $1, payout_earned = $2
+            WHERE id = $3
+        """, is_consensus, payout, submission["id"])
+        
+        await conn.execute("""
+            UPDATE balances 
+            SET balance_usd = balance_usd + $1
+            WHERE user_type = 'reviewer' AND user_id = $2
+        """, payout, str(submission["reviewer_id"]))
+    
+    await update_package_quality_scores(conn, task["package_id"], submissions)
+    
+    await conn.execute("""
+        UPDATE review_tasks SET status = 'completed' WHERE id = $1
+    """, task_id)
+    
+    for submission in submissions:
+        await update_reviewer_stats(conn, submission["reviewer_id"])
+
+async def update_package_quality_scores(conn, package_id: int, submissions: list):
+    """Update aggregated quality scores for a package"""
+    avg_quality = statistics.mean([s["quality_score"] for s in submissions])
+    avg_timeliness = statistics.mean([s["timeliness_score"] for s in submissions])
+    avg_schema = statistics.mean([s["schema_compliance_score"] for s in submissions])
+    avg_overall = statistics.mean([s["overall_rating"] for s in submissions])
+    
+    await conn.execute("""
+        UPDATE package_quality_scores SET
+            avg_quality_score = $1,
+            avg_timeliness_score = $2, 
+            avg_schema_score = $3,
+            overall_rating = $4,
+            total_reviews = total_reviews + $5,
+            last_reviewed = NOW(),
+            updated_at = NOW()
+        WHERE package_id = $6
+    """, avg_quality, avg_timeliness, avg_schema, avg_overall, len(submissions), package_id)
+
+async def update_reviewer_stats(conn, reviewer_id: int):
+    """Update reviewer statistics after completing a review"""
+    stats = await conn.fetchrow("""
+        SELECT 
+            COUNT(*) as total_reviews,
+            AVG(CASE WHEN is_consensus THEN 1.0 ELSE 0.0 END) as consensus_rate,
+            SUM(payout_earned) as total_earned
+        FROM review_submissions 
+        WHERE reviewer_id = $1
+    """, reviewer_id)
+    
+    accuracy_score = min(stats["consensus_rate"] * 10, 10.0) if stats["consensus_rate"] else 0
+    
+    total_reviews = stats["total_reviews"]
+    consensus_rate = float(stats["consensus_rate"] or 0)
+    
+    if total_reviews >= 100 and consensus_rate >= 0.9:
+        reputation_level = "master"
+    elif total_reviews >= 50 and consensus_rate >= 0.8:
+        reputation_level = "expert" 
+    elif total_reviews >= 20 and consensus_rate >= 0.7:
+        reputation_level = "experienced"
+    else:
+        reputation_level = "novice"
+    
+    await conn.execute("""
+        UPDATE reviewer_stats SET
+            total_reviews = $1,
+            consensus_rate = $2,
+            accuracy_score = $3,
+            total_earned = $4,
+            reputation_level = $5,
+            updated_at = NOW()
+        WHERE reviewer_id = $6
+    """, total_reviews, stats["consensus_rate"], accuracy_score, 
+    float(stats["total_earned"]), reputation_level, reviewer_id)
+    
+    await conn.execute("""
+        UPDATE reviewers SET reputation_level = $1 WHERE id = $2
+    """, reputation_level, reviewer_id)
+
+# Database Lifecycle
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global db_pool
+    max_retries = 10
+    retry_delay = 2
+    
+    for attempt in range(max_retries):
+        try:
+            logging.info(f"Attempting to connect to database (attempt {attempt + 1}/{max_retries})")
+            db_pool = await asyncpg.create_pool(DATABASE_URL)
+            logging.info("Successfully connected to database")
+            
+            await add_unique_constraints()
+            logging.info("Database migrations completed")
+            break
+        except Exception as e:
+            logging.warning(f"Database connection failed: {e}")
+            if attempt == max_retries - 1:
+                logging.error("Max retries reached, giving up")
+                raise
+            logging.info(f"Retrying in {retry_delay} seconds...")
+            await asyncio.sleep(retry_delay)
+    
+    yield
+    
+    if db_pool:
+        await db_pool.close()
+
+# FastAPI App Setup
+api = FastAPI(title="SquidPro", version="0.1.0", lifespan=lifespan)
+
+api.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+if os.path.exists("public"):
+    api.mount("/static", StaticFiles(directory="public"), name="static")
+
+# Root Endpoints
+@api.get("/")
+async def serve_catalog():
+    """Serve the data catalog as the main page"""
+    catalog_path = "public/catalog.html"
+    if os.path.exists(catalog_path):
+        return FileResponse(catalog_path)
+    else:
+        return {"message": "SquidPro API is running", "catalog": "catalog.html not found"}
+
+@api.get("/profile.html")
+async def serve_profile():
+    """Serve the profile page"""
+    return FileResponse("public/profile.html")
+
+@api.get("/catalog.html") 
+async def serve_catalog_alt():
+    """Alternative catalog route"""
+    return FileResponse("public/catalog.html")
+
+@api.get("/health")
+def health():
+    return {"ok": True}
+
+# Authentication Endpoints
+@api.get("/auth/check-username")
+async def check_username_availability(username: str):
+    """Check if username is available"""
+    async with db_pool.acquire() as conn:
+        existing = await conn.fetchval(
+            "SELECT username FROM users WHERE username = $1", 
+            username
+        )
+        
+        available = existing is None
+        return {
+            "available": available,
+            "message": "Username is available" if available else "Username is already taken"
+        }
+@api.get("/auth/check-email")
+async def check_email_availability(email: str):
+    """Check if email is available"""
+    if not email or '@' not in email:
+        return {
+            "available": False,
+            "message": "Please enter a valid email address"
+        }
+    
+    email = email.strip().lower()
+    
+    try:
+        async with db_pool.acquire() as conn:
+            existing = await conn.fetchval(
+                "SELECT email FROM users WHERE LOWER(email) = $1", 
+                email
+            )
+            
+            available = existing is None
+            message = "Email is available" if available else "Email is already registered"
+            
+            return {
+                "available": available,
+                "message": message
+            }
+            
+    except Exception as e:
+        return {
+            "available": False,
+            "message": f"Database error: {str(e)}"
+        }
+@api.post("/auth/register")
+async def register_user(user_data: UserRegistration):
+    """Register a new user with multiple roles"""
+    async with db_pool.acquire() as conn:
+        existing_username = await conn.fetchval(
+            "SELECT username FROM users WHERE username = $1", 
+            user_data.username
+        )
+        if existing_username:
+            raise HTTPException(status_code=409, detail="Username already taken")
+        
+        existing_email = await conn.fetchval(
+            "SELECT email FROM users WHERE email = $1", 
+            user_data.email
+        )
+        if existing_email:
+            raise HTTPException(status_code=409, detail="Email already registered")
+        
+        password_hash = hash_password(user_data.password)
+        api_key = f"usr_{secrets.token_urlsafe(32)}"
+        
+        try:
+            async with conn.transaction():
+                user_id = await conn.fetchval("""
+                    INSERT INTO users (username, name, email, password_hash, stellar_address)
+                    VALUES ($1, $2, $3, $4, $5)
+                    RETURNING id
+                """, user_data.username, user_data.name, user_data.email, 
+                password_hash, user_data.stellar_address)
+                
+                for role in user_data.roles:
+                    await conn.execute("""
+                        INSERT INTO user_roles (user_id, role_type, api_key)
+                        VALUES ($1, $2, $3)
+                    """, user_id, role, api_key)
+                
+                if 'supplier' in user_data.roles:
+                    await conn.execute("""
+                        INSERT INTO balances (user_type, user_id, payout_threshold_usd)
+                        VALUES ('supplier', $1, 25.00)
+                    """, str(user_id))
+                
+                if 'reviewer' in user_data.roles:
+                    await conn.execute("""
+                        INSERT INTO balances (user_type, user_id, payout_threshold_usd)
+                        VALUES ('reviewer', $1, 5.00)
+                    """, str(user_id))
+                    
+                    await conn.execute("""
+                        INSERT INTO reviewer_stats (reviewer_id) VALUES ($1)
+                    """, user_id)
+                
+                return {
+                    "user_id": user_id,
+                    "username": user_data.username,
+                    "api_key": api_key,
+                    "roles": user_data.roles,
+                    "message": "Account created successfully"
+                }
+                
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+
+@api.post("/auth/login")
+async def login_user(credentials: LoginCredentials):
+    """Login with username and password"""
+    async with db_pool.acquire() as conn:
+        user = await conn.fetchrow("""
+            SELECT u.id, u.username, u.name, u.email, u.password_hash, u.stellar_address
+            FROM users u
+            WHERE u.username = $1
+        """, credentials.username)
+        
+        if not user or not verify_password(credentials.password, user["password_hash"]):
+            raise HTTPException(status_code=401, detail="Invalid username or password")
+        
+        roles_data = await conn.fetch("""
+            SELECT role_type, api_key FROM user_roles 
+            WHERE user_id = $1 AND is_active = TRUE
+        """, user["id"])
+        
+        if not roles_data:
+            raise HTTPException(status_code=401, detail="No active roles found")
+        
+        roles = [role["role_type"] for role in roles_data]
+        api_key = roles_data[0]["api_key"]
+        
+        session_token = generate_session_token()
+        session_data = UserSession(
+            user_id=user["id"],
+            username=user["username"],
+            name=user["name"],
+            email=user["email"],
+            roles=roles,
+            api_key=api_key,
+            stellar_address=user["stellar_address"]
+        )
+        
+        active_sessions[session_token] = {
+            "data": session_data,
+            "expires_at": datetime.now() + timedelta(hours=24)
+        }
+        
+        return {
+            "session_token": session_token,
+            "user": {
+                "id": user["id"],
+                "username": user["username"],
+                "name": user["name"],
+                "email": user["email"],
+                "roles": roles,
+                "api_key": api_key,
+                "stellar_address": user["stellar_address"]
+            }
+        }
+
+@api.post("/auth/logout")
+async def logout_user(session_token: str = Header(None, alias="Authorization")):
+    """Logout user and invalidate session"""
+    if session_token and session_token in active_sessions:
+        del active_sessions[session_token]
+    
+    return {"message": "Logged out successfully"}
+
+@api.get("/auth/session")
+async def get_session(session_token: str = Header(None, alias="Authorization")):
+    """Get current session data"""
+    if not session_token or session_token not in active_sessions:
+        raise HTTPException(status_code=401, detail="Invalid or expired session")
+    
+    session = active_sessions[session_token]
+    
+    if datetime.now() > session["expires_at"]:
+        del active_sessions[session_token]
+        raise HTTPException(status_code=401, detail="Session expired")
+    
+    return {"user": session["data"]}
+
+# Supplier Endpoints
+@api.post("/suppliers/register")
+async def register_supplier(supplier: SupplierRegistration):
+    """Register a new data supplier"""
+    async with db_pool.acquire() as conn:
+        existing_email = await conn.fetchval("""
+            SELECT email FROM suppliers WHERE email = $1
+            UNION
+            SELECT email FROM reviewers WHERE email = $1
+        """, supplier.email)
+        
+        if existing_email:
+            raise HTTPException(status_code=409, detail="Email already registered")
+        
+        existing_name = await conn.fetchval("""
+            SELECT name FROM suppliers WHERE name = $1
+            UNION
+            SELECT name FROM reviewers WHERE name = $1
+        """, supplier.name)
+        
+        if existing_name:
+            raise HTTPException(status_code=409, detail="Username already taken")
+        
+        existing_stellar = await conn.fetchval("""
+            SELECT stellar_address FROM suppliers WHERE stellar_address = $1
+            UNION
+            SELECT stellar_address FROM reviewers WHERE stellar_address = $1
+        """, supplier.stellar_address)
+        
+        if existing_stellar:
+            raise HTTPException(status_code=409, detail="Stellar address already registered")
+        
+        api_key = f"sup_{secrets.token_urlsafe(32)}"
+        
+        try:
+            supplier_id = await conn.fetchval("""
+                INSERT INTO suppliers (name, email, stellar_address, api_key)
+                VALUES ($1, $2, $3, $4)
+                RETURNING id
+            """, supplier.name, supplier.email, supplier.stellar_address, api_key)
+            
+            await conn.execute("""
+                INSERT INTO balances (user_type, user_id, payout_threshold_usd)
+                VALUES ('supplier', $1, 25.00)
+            """, str(supplier_id))
+            
+            return {
+                "supplier_id": supplier_id,
+                "api_key": api_key,
+                "status": "registered",
+                "message": "Supplier registered successfully. Save your API key securely."
+            }
+            
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "email" in error_msg and "unique" in error_msg:
+                raise HTTPException(status_code=409, detail="Email already registered")
+            elif "name" in error_msg and "unique" in error_msg:
+                raise HTTPException(status_code=409, detail="Username already taken")
+            elif "stellar_address" in error_msg and "unique" in error_msg:
+                raise HTTPException(status_code=409, detail="Stellar address already registered")
+            else:
+                raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+
+@api.get("/suppliers/me")
+async def get_supplier_info(x_api_key: Optional[str] = Header(None)):
+    """Get supplier information"""
+    supplier = await authenticate_supplier(x_api_key)
+    
+    async with db_pool.acquire() as conn:
+        supplier_info = await conn.fetchrow("""
+            SELECT s.*, 
+                   COUNT(p.id) as package_count,
+                   b.balance_usd,
+                   b.payout_threshold_usd
+            FROM suppliers s
+            LEFT JOIN data_packages p ON s.id = p.supplier_id
+            LEFT JOIN balances b ON s.id::text = b.user_id AND b.user_type = 'supplier'
+            WHERE s.id = $1
+            GROUP BY s.id, b.balance_usd, b.payout_threshold_usd
+        """, supplier["id"])
+        
+        return {
+            "id": supplier_info["id"],
+            "name": supplier_info["name"],
+            "email": supplier_info["email"],
+            "stellar_address": supplier_info["stellar_address"],
+            "status": supplier_info["status"],
+            "package_count": supplier_info["package_count"] or 0,
+            "balance": float(supplier_info["balance_usd"] or 0),
+            "payout_threshold": float(supplier_info["payout_threshold_usd"] or 25.00),
+            "created_at": supplier_info["created_at"].isoformat()
+        }
+
+@api.post("/suppliers/packages")
+async def create_package(package: DataPackage, x_api_key: Optional[str] = Header(None)):
+    """Create a new data package"""
+    supplier = await authenticate_supplier(x_api_key)
+    
+    async with db_pool.acquire() as conn:
+        package_id = await conn.fetchval("""
+            INSERT INTO data_packages (
+                supplier_id, name, description, category, endpoint_url,
+                price_per_query, sample_data, schema_definition, rate_limit, tags
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING id
+        """, supplier["id"], package.name, package.description, package.category,
+        package.endpoint_url, package.price_per_query, package.sample_data,
+        package.schema_definition, package.rate_limit, package.tags)
+        
+        return {
+            "package_id": package_id,
+            "status": "created",
+            "message": "Data package created successfully"
+        }
+
+@api.post("/suppliers/upload")
+async def upload_dataset_with_pii_filter(
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    description: str = Form(""),
+    category: str = Form("financial"),
+    price_per_query: float = Form(0.005),
+    tags: str = Form(""),
+    pii_policy: str = Form("strict"),
+    x_api_key: Optional[str] = Header(None)
+):
+    """Upload dataset with automated PII filtering"""
+    supplier = await authenticate_supplier(x_api_key)
+    
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files supported")
+    
+    content = await file.read()
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+    
+    file_hash = hashlib.sha256(content).hexdigest()[:16]
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{supplier['id']}_{timestamp}_{file_hash}.csv"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    
+    temp_path = file_path + ".temp"
+    with open(temp_path, 'wb') as f:
+        f.write(content)
+    
+    try:
+        df = pd.read_csv(temp_path)
+        detector = PIIDetector()
+        analysis = detector.scan_dataframe(df)
+        
+        async with db_pool.acquire() as conn:
+            await log_pii_detection(conn, supplier["id"], filename, analysis)
+            
+            if analysis['blocking_issues']:
+                os.remove(temp_path)
+                
+                blocking_summary = {}
+                for issue in analysis['blocking_issues']:
+                    pii_type = issue['type']
+                    if pii_type not in blocking_summary:
+                        blocking_summary[pii_type] = 0
+                    blocking_summary[pii_type] += 1
+                
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "PII_DETECTED",
+                        "message": "Upload blocked due to sensitive data detection",
+                        "pii_found": blocking_summary,
+                        "findings_count": analysis['total_findings'],
+                        "recommendation": "Please remove or anonymize sensitive data before uploading"
+                    }
+                )
+            
+            cleaned_df, cleaning_log = detector.clean_dataframe(df, analysis)
+            
+            cleaned_df.to_csv(file_path, index=False)
+            os.remove(temp_path)
+            
+            sample_data = cleaned_df.head(3).to_dict(orient='records')
+            schema = {col: str(cleaned_df[col].dtype) for col in cleaned_df.columns}
+            row_count = len(cleaned_df)
+            column_count = len(cleaned_df.columns)
+            
+            tag_list = [tag.strip() for tag in tags.split(',')] if tags else []
+            tag_list.extend(['uploaded', 'pii-filtered'])
+            
+            package_id = await conn.fetchval("""
+                INSERT INTO data_packages (
+                    supplier_id, name, description, category, 
+                    endpoint_url, price_per_query, sample_data, 
+                    tags, package_type
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                RETURNING id
+            """, supplier["id"], name, description, category,
+            f"/data/uploaded/{filename}", price_per_query, 
+            json.dumps(sample_data), tag_list, 'upload')
+            
+            await conn.execute("""
+                INSERT INTO uploaded_datasets (
+                    supplier_id, package_id, filename, original_filename,
+                    file_path, file_size, file_hash, data_format,
+                    row_count, column_count, schema_info
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            """, supplier["id"], package_id, filename, file.filename,
+            file_path, len(content), file_hash, 'csv',
+            row_count, column_count, json.dumps(schema))
+            
+            response = {
+                "package_id": package_id,
+                "filename": filename,
+                "status": "uploaded",
+                "row_count": row_count,
+                "column_count": column_count,
+                "message": f"Dataset '{name}' uploaded successfully",
+                "pii_analysis": {
+                    "scanned": True,
+                    "findings_total": analysis['total_findings'],
+                    "pii_types_found": list(analysis['findings_by_type'].keys()),
+                    "actions_taken": cleaning_log['actions_taken'] if cleaning_log['actions_taken'] else ["No PII cleaning needed"],
+                    "data_cleaned": len(cleaning_log['actions_taken']) > 0
+                }
+            }
+            
+            return response
+            
+    except pd.errors.ParserError as e:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise HTTPException(status_code=400, detail=f"Invalid CSV file: {str(e)}")
+    except Exception as e:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@api.get("/suppliers/uploads")
+async def list_uploads(x_api_key: Optional[str] = Header(None)):
+    """List supplier's uploaded datasets"""
+    supplier = await authenticate_supplier(x_api_key)
+    
+    async with db_pool.acquire() as conn:
+        uploads = await conn.fetch("""
+            SELECT ud.*, dp.name as package_name
+            FROM uploaded_datasets ud
+            JOIN data_packages dp ON ud.package_id = dp.id
+            WHERE ud.supplier_id = $1
+            ORDER BY ud.upload_date DESC
+        """, supplier["id"])
+        
+        return [
+            {
+                "package_id": upload["package_id"],
+                "package_name": upload["package_name"],
+                "filename": upload["filename"],
+                "original_filename": upload["original_filename"],
+                "file_size": upload["file_size"],
+                "row_count": upload["row_count"],
+                "upload_date": upload["upload_date"].isoformat()
+            }
+            for upload in uploads
+        ]
+
+# Reviewer Endpoints
+@api.post("/reviewers/register")
+async def register_reviewer(reviewer: ReviewerRegistration):
+    """Register as a data quality reviewer"""
+    async with db_pool.acquire() as conn:
+        existing_email = await conn.fetchval("""
+            SELECT email FROM reviewers WHERE email = $1
+            UNION
+            SELECT email FROM suppliers WHERE email = $1
+        """, reviewer.email)
+        
+        if existing_email:
+            raise HTTPException(status_code=409, detail="Email already registered")
+        
+        existing_name = await conn.fetchval("""
+            SELECT name FROM reviewers WHERE name = $1
+            UNION
+            SELECT name FROM suppliers WHERE name = $1
+        """, reviewer.name)
+        
+        if existing_name:
+            raise HTTPException(status_code=409, detail="Username already taken")
+        
+        existing_stellar = await conn.fetchval("""
+            SELECT stellar_address FROM reviewers WHERE stellar_address = $1
+            UNION
+            SELECT stellar_address FROM suppliers WHERE stellar_address = $1
+        """, reviewer.stellar_address)
+        
+        if existing_stellar:
+            raise HTTPException(status_code=409, detail="Stellar address already registered")
+        
+        api_key = f"rev_{secrets.token_urlsafe(32)}"
+        
+        try:
+            reviewer_id = await conn.fetchval("""
+                INSERT INTO reviewers (name, stellar_address, email, specializations, api_key)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING id
+            """, reviewer.name, reviewer.stellar_address, reviewer.email, 
+            reviewer.specializations, api_key)
+            
+            await conn.execute("""
+                INSERT INTO balances (user_type, user_id, payout_threshold_usd)
+                VALUES ('reviewer', $1, 5.00)
+            """, str(reviewer_id))
+            
+            await conn.execute("""
+                INSERT INTO reviewer_stats (reviewer_id) VALUES ($1)
+            """, reviewer_id)
+            
+            return {
+                "reviewer_id": reviewer_id,
+                "api_key": api_key,
+                "status": "registered",
+                "message": "Reviewer registered successfully. Save your API key securely."
+            }
+            
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "email" in error_msg and "unique" in error_msg:
+                raise HTTPException(status_code=409, detail="Email already registered")
+            elif "name" in error_msg and "unique" in error_msg:
+                raise HTTPException(status_code=409, detail="Username already taken") 
+            elif "stellar_address" in error_msg and "unique" in error_msg:
+                raise HTTPException(status_code=409, detail="Stellar address already registered")
+            else:
+                raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+
+@api.get("/reviewers/me")
+async def get_reviewer_info(x_api_key: Optional[str] = Header(None)):
+    """Get reviewer information and stats"""
+    reviewer = await authenticate_reviewer(x_api_key)
+    
+    async with db_pool.acquire() as conn:
+        info = await conn.fetchrow("""
+            SELECT r.*, rs.*, b.balance_usd, b.payout_threshold_usd
+            FROM reviewers r
+            LEFT JOIN reviewer_stats rs ON r.id = rs.reviewer_id
+            LEFT JOIN balances b ON r.id::text = b.user_id AND b.user_type = 'reviewer'
+            WHERE r.id = $1
+        """, reviewer["id"])
+        
+        return {
+            "id": info["id"],
+            "name": info["name"],
+            "stellar_address": info["stellar_address"],
+            "reputation_level": info["reputation_level"],
+            "specializations": info["specializations"] or [],
+            "stats": {
+                "total_reviews": info["total_reviews"] or 0,
+                "consensus_rate": float(info["consensus_rate"] or 0),
+                "accuracy_score": float(info["accuracy_score"] or 0),
+                "total_earned": float(info["total_earned"] or 0),
+                "avg_review_time_minutes": info["avg_review_time_minutes"] or 0
+            },
+            "balance": float(info["balance_usd"] or 0),
+            "payout_threshold": float(info["payout_threshold_usd"] or 5.00)
+        }
+
+@api.get("/review-tasks")
+async def get_available_review_tasks(
+    category: Optional[str] = None,
+    task_type: Optional[str] = None,
+    x_api_key: Optional[str] = Header(None)
+):
+    """Get available review tasks for a reviewer"""
+    reviewer = await authenticate_reviewer(x_api_key)
+    
+    async with db_pool.acquire() as conn:
+        query = """
+            SELECT rt.*, dp.name as package_name, dp.category, s.name as supplier_name,
+                   pqs.overall_rating as current_rating,
+                   (rt.required_reviews - COALESCE(submitted_count.count, 0)) as spots_remaining
+            FROM review_tasks rt
+            JOIN data_packages dp ON rt.package_id = dp.id
+            JOIN suppliers s ON dp.supplier_id = s.id
+            LEFT JOIN package_quality_scores pqs ON dp.id = pqs.package_id
+            LEFT JOIN (
+                SELECT task_id, COUNT(*) as count 
+                FROM review_submissions 
+                GROUP BY task_id
+            ) submitted_count ON rt.id = submitted_count.task_id
+            WHERE rt.status = 'open' 
+            AND rt.expires_at > NOW()
+            AND rt.id NOT IN (
+                SELECT task_id FROM review_submissions WHERE reviewer_id = $1
+            )
+            AND (rt.required_reviews - COALESCE(submitted_count.count, 0)) > 0
+        """
+        
+        params = [reviewer["id"]]
+        
+        if category:
+            query += " AND dp.category = $2"
+            params.append(category)
+        
+        if task_type:
+            query += f" AND rt.task_type = ${'3' if category else '2'}"
+            params.append(task_type)
+        
+        query += " ORDER BY rt.reward_pool_usd DESC, rt.created_at ASC LIMIT 20"
+        
+        tasks = await conn.fetch(query, *params)
+        
+        return [
+            {
+                "task_id": task["id"],
+                "package_name": task["package_name"],
+                "supplier": task["supplier_name"],
+                "category": task["category"],
+                "task_type": task["task_type"],
+                "reward_pool": float(task["reward_pool_usd"]),
+                "spots_remaining": task["spots_remaining"],
+                "current_rating": float(task["current_rating"] or 0),
+                "reference_query": task["reference_query"],
+                "expires_at": task["expires_at"].isoformat()
+            }
+            for task in tasks
+        ]
+
+@api.post("/review-tasks/{task_id}/submit")
+async def submit_review(
+    task_id: int,
+    review: ReviewSubmission,
+    x_api_key: Optional[str] = Header(None)
+):
+    """Submit a quality review for a task"""
+    reviewer = await authenticate_reviewer(x_api_key)
+    
+    async with db_pool.acquire() as conn:
+        task = await conn.fetchrow("""
+            SELECT rt.*, dp.name as package_name
+            FROM review_tasks rt
+            JOIN data_packages dp ON rt.package_id = dp.id
+            WHERE rt.id = $1 AND rt.status = 'open' AND rt.expires_at > NOW()
+        """, task_id)
+        
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found or expired")
+        
+        existing = await conn.fetchval("""
+            SELECT id FROM review_submissions 
+            WHERE task_id = $1 AND reviewer_id = $2
+        """, task_id, reviewer["id"])
+        
+        if existing:
+            raise HTTPException(status_code=409, detail="Already submitted review for this task")
+        
+        submission_id = await conn.fetchval("""
+            INSERT INTO review_submissions (
+                task_id, reviewer_id, quality_score, timeliness_score, 
+                schema_compliance_score, overall_rating, findings, evidence,
+                test_timestamp
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+            RETURNING id
+        """, task_id, reviewer["id"], review.quality_score, review.timeliness_score,
+        review.schema_compliance_score, review.overall_rating, review.findings, 
+        json.dumps(review.evidence) if review.evidence else None)
+        
+        review_count = await conn.fetchval("""
+            SELECT COUNT(*) FROM review_submissions WHERE task_id = $1
+        """, task_id)
+        
+        if review_count >= task["required_reviews"]:
+            await process_review_consensus(conn, task_id)
+        
+        return {
+            "submission_id": submission_id,
+            "status": "submitted",
+            "task_name": task["package_name"],
+            "message": f"Review submitted. {task['required_reviews'] - review_count} more reviews needed for consensus."
+        }
+
+# Package and Data Endpoints
+@api.get("/packages")
+async def list_packages(category: Optional[str] = None, tag: Optional[str] = None):
+    """List all available data packages"""
+    async with db_pool.acquire() as conn:
+        query = """
+            SELECT p.*, s.name as supplier_name
+            FROM data_packages p
+            JOIN suppliers s ON p.supplier_id = s.id
+            WHERE p.status = 'active' AND s.status = 'active'
+        """
+        params = []
+        
+        if category:
+            query += " AND p.category = $1"
+            params.append(category)
+        
+        if tag:
+            query += f" AND ${'2' if category else '1'} = ANY(p.tags)"
+            params.append(tag)
+        
+        query += " ORDER BY p.created_at DESC"
+        
+        packages = await conn.fetch(query, *params)
+        
+        return [
+            {
+                "id": pkg["id"],
+                "name": pkg["name"],
+                "description": pkg["description"],
+                "category": pkg["category"],
+                "supplier": pkg["supplier_name"],
+                "price_per_query": float(pkg["price_per_query"]),
+                "sample_data": pkg["sample_data"],
+                "tags": pkg["tags"],
+                "rate_limit": pkg["rate_limit"]
+            }
+            for pkg in packages
+        ]
+
+@api.get("/packages/{package_id}")
+async def get_package(package_id: int):
+    """Get detailed package information"""
+    async with db_pool.acquire() as conn:
+        package = await conn.fetchrow("""
+            SELECT p.*, s.name as supplier_name
+            FROM data_packages p
+            JOIN suppliers s ON p.supplier_id = s.id
+            WHERE p.id = $1 AND p.status = 'active' AND s.status = 'active'
+        """, package_id)
+        
+        if not package:
+            raise HTTPException(status_code=404, detail="Package not found")
+        
+        return {
+            "id": package["id"],
+            "name": package["name"],
+            "description": package["description"],
+            "category": package["category"],
+            "supplier": package["supplier_name"],
+            "price_per_query": float(package["price_per_query"]),
+            "sample_data": package["sample_data"],
+            "schema_definition": package["schema_definition"],
+            "tags": package["tags"],
+            "rate_limit": package["rate_limit"],
+            "created_at": package["created_at"].isoformat()
+        }
+
+@api.get("/packages/{package_id}/quality")
+async def get_package_quality(package_id: int):
+    """Get quality assessment for a data package"""
+    async with db_pool.acquire() as conn:
+        quality = await conn.fetchrow("""
+            SELECT pqs.*, dp.name as package_name, s.name as supplier_name
+            FROM package_quality_scores pqs
+            JOIN data_packages dp ON pqs.package_id = dp.id
+            JOIN suppliers s ON dp.supplier_id = s.id
+            WHERE pqs.package_id = $1
+        """, package_id)
+        
+        if not quality:
+            raise HTTPException(status_code=404, detail="Package not found")
+        
+        recent_reviews = await conn.fetch("""
+            SELECT rs.overall_rating, rs.findings, rs.submitted_at, r.name as reviewer_name
+            FROM review_submissions rs
+            JOIN review_tasks rt ON rs.task_id = rt.id
+            JOIN reviewers r ON rs.reviewer_id = r.id
+            WHERE rt.package_id = $1
+            ORDER BY rs.submitted_at DESC
+            LIMIT 10
+        """, package_id)
+        
+        return {
+            "package_id": package_id,
+            "package_name": quality["package_name"],
+            "supplier": quality["supplier_name"],
+            "scores": {
+                "overall_rating": float(quality["overall_rating"]),
+                "quality": float(quality["avg_quality_score"]),
+                "timeliness": float(quality["avg_timeliness_score"]),
+                "schema_compliance": float(quality["avg_schema_score"])
+            },
+            "total_reviews": quality["total_reviews"],
+            "last_reviewed": quality["last_reviewed"].isoformat() if quality["last_reviewed"] else None,
+            "trend": quality["quality_trend"],
+            "recent_reviews": [
+                {
+                    "rating": r["overall_rating"],
+                    "reviewer": r["reviewer_name"],
+                    "findings": r["findings"][:200] + "..." if len(r["findings"]) > 200 else r["findings"],
+                    "date": r["submitted_at"].isoformat()
+                }
+                for r in recent_reviews
+            ]
+        }
+
+@api.get("/data/package/{package_id}")
+async def query_package_data(package_id: int, Authorization: Optional[str] = Header(None)):
+    """Query data from a specific package"""
+    claims = _auth(Authorization)
+    if claims.get("scope") != "data.read.price":
+        raise HTTPException(status_code=403, detail="Scope not allowed for this endpoint")
+    
+    async with db_pool.acquire() as conn:
+        package = await conn.fetchrow("""
+            SELECT p.*, s.id as supplier_id
+            FROM data_packages p
+            JOIN suppliers s ON p.supplier_id = s.id
+            WHERE p.id = $1 AND p.status = 'active' AND s.status = 'active'
+        """, package_id)
+        
+        if not package:
+            raise HTTPException(status_code=404, detail="Package not found or inactive")
+        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(package["endpoint_url"])
+        
+        if r.status_code != 200:
+            raise HTTPException(status_code=502, detail="Package endpoint error")
+        
+        data = r.json()
+        
+        price = float(package["price_per_query"])
+        supplier_amt = round(price * SPLIT_SUPPLIER, 6)
+        reviewer_pool = round(price * SPLIT_REVIEWER, 6)
+        squidpro_amt = round(price * SPLIT_SQUIDPRO, 6)
+        
+        await update_balances(supplier_amt, reviewer_pool, squidpro_amt, str(package["supplier_id"]))
+        
+        await conn.execute("""
+            INSERT INTO query_history (package_id, agent_id, response_size, cost, trace_id)
+            VALUES ($1, $2, $3, $4, $5)
+        """, package_id, claims["sub"], len(str(data)), price, claims["trace_id"])
+        
+        receipt = {
+            "trace_id": claims["trace_id"],
+            "package_id": package_id,
+            "package_name": package["name"],
+            "ts": int(time.time()),
+            "data": data,
+            "cost": price,
+            "payout": {"supplier": supplier_amt, "reviewer_pool": reviewer_pool, "squidpro": squidpro_amt}
+        }
+        return JSONResponse(receipt)
+
+@api.get("/data/uploaded/{filename}")
+async def serve_uploaded_data(
+    filename: str,
+    limit: int = Query(100, le=1000),
+    offset: int = Query(0, ge=0),
+    Authorization: Optional[str] = Header(None)
+):
+    """Serve data from uploaded datasets"""
+    claims = _auth(Authorization)
+    if claims.get("scope") != "data.read.price":
+        raise HTTPException(status_code=403, detail="Invalid scope")
+    
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
+    try:
+        df = pd.read_csv(file_path)
+        total_rows = len(df)
+        df_page = df.iloc[offset:offset+limit]
+        json_data = df_page.to_dict(orient='records')
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading dataset: {str(e)}")
+    
+    async with db_pool.acquire() as conn:
+        upload_info = await conn.fetchrow("""
+            SELECT ud.*, dp.name as package_name, dp.price_per_query, dp.id as package_id
+            FROM uploaded_datasets ud
+            JOIN data_packages dp ON ud.package_id = dp.id
+            WHERE ud.filename = $1
+        """, filename)
+        
+        if not upload_info:
+            raise HTTPException(status_code=404, detail="Package not found in database")
+        
+        price = float(upload_info["price_per_query"])
+        supplier_amt = round(price * SPLIT_SUPPLIER, 6)
+        reviewer_pool = round(price * SPLIT_REVIEWER, 6)
+        squidpro_amt = round(price * SPLIT_SQUIDPRO, 6)
+        
+        await update_balances(supplier_amt, reviewer_pool, squidpro_amt, str(upload_info["supplier_id"]))
+        
+        await conn.execute("""
+            INSERT INTO query_history (package_id, agent_id, response_size, cost, trace_id)
+            VALUES ($1, $2, $3, $4, $5)
+        """, upload_info["package_id"], claims["sub"], len(str(json_data)), price, claims["trace_id"])
+    
+    receipt = {
+        "trace_id": claims["trace_id"],
+        "package_name": upload_info["package_name"],
+        "filename": filename,
+        "total_rows": total_rows,
+        "returned_rows": len(json_data),
+        "offset": offset,
+        "limit": limit,
+        "data": json_data,
+        "cost": price,
+        "payout": {"supplier": supplier_amt, "reviewer_pool": reviewer_pool, "squidpro": squidpro_amt}
+    }
+    
+    return JSONResponse(receipt)
+
+# Legacy Mint and Price Endpoints
+@api.post("/mint")
+def mint(req: MintReq):
+    trace_id = str(uuid.uuid4())
+    exp = int(time.time()) + 3600
+    token = jwt.encode({
+        "iss": "squidpro",
+        "sub": req.agent_id,
+        "scope": req.scope,
+        "trace_id": trace_id,
+        "price": PRICE,
+        "splits": {"supplier": SPLIT_SUPPLIER, "reviewer": SPLIT_REVIEWER, "squidpro": SPLIT_SQUIDPRO},
+        "exp": exp,
+        "jti": str(uuid.uuid4())
+    }, SECRET, algorithm="HS256")
+    return {"token": token, "trace_id": trace_id, "expires_in_s": 3600, "demo_credits": req.credits}
+
+@api.get("/data/price")
+async def get_price(pair: str = Query("BTCUSDT"), Authorization: Optional[str] = Header(None)):
+    """Legacy price endpoint - queries the first crypto package"""
+    claims = _auth(Authorization)
+    if claims.get("scope") != "data.read.price":
+        raise HTTPException(status_code=403, detail="Scope not allowed for this endpoint")
+    
+    async with db_pool.acquire() as conn:
+        package = await conn.fetchrow("""
+            SELECT p.*, s.id as supplier_id
+            FROM data_packages p
+            JOIN suppliers s ON p.supplier_id = s.id
+            WHERE p.category = 'financial' AND p.tags && ARRAY['crypto', 'prices']
+            AND p.status = 'active' AND s.status = 'active'
+            ORDER BY p.created_at
+            LIMIT 1
+        """)
+    
+    if not package:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.get(f"{COLLECTOR}/price", params={"pair": pair})
+        if r.status_code != 200:
+            raise HTTPException(status_code=502, detail="Collector error")
+        data = r.json()
+        
+        await update_balances(
+            round(PRICE * SPLIT_SUPPLIER, 6),
+            round(PRICE * SPLIT_REVIEWER, 6), 
+            round(PRICE * SPLIT_SQUIDPRO, 6),
+            "1"
+        )
+        
+        receipt = {
+            "trace_id": claims["trace_id"],
+            "pair": pair,
+            "ts": int(time.time()),
+            "price": data["price"],
+            "volume": data["volume"],
+            "cost": PRICE,
+            "payout": {
+                "supplier": round(PRICE * SPLIT_SUPPLIER, 6),
+                "reviewer_pool": round(PRICE * SPLIT_REVIEWER, 6),
+                "squidpro": round(PRICE * SPLIT_SQUIDPRO, 6)
+            }
+        }
+        return JSONResponse(receipt)
+    
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        r = await client.get(package["endpoint_url"], params={"pair": pair})
+    
+    if r.status_code != 200:
+        raise HTTPException(status_code=502, detail="Package endpoint error")
+    
+    data = r.json()
+    price = float(package["price_per_query"])
+    supplier_amt = round(price * SPLIT_SUPPLIER, 6)
+    reviewer_pool = round(price * SPLIT_REVIEWER, 6)
+    squidpro_amt = round(price * SPLIT_SQUIDPRO, 6)
+    
+    await update_balances(supplier_amt, reviewer_pool, squidpro_amt, str(package["supplier_id"]))
+    
+    receipt = {
+        "trace_id": claims["trace_id"],
+        "pair": pair,
+        "ts": int(time.time()),
+        "price": data["price"],
+        "volume": data["volume"],
+        "cost": price,
+        "payout": {"supplier": supplier_amt, "reviewer_pool": reviewer_pool, "squidpro": squidpro_amt}
+    }
+    return JSONResponse(receipt)
+
+# Balance and Payout Endpoints
+@api.get("/balances")
+async def get_balances():
+    """Get all current balances - useful for monitoring"""
+    async with db_pool.acquire() as conn:
+        rows = await conn.fetch("SELECT user_type, user_id, balance_usd FROM balances ORDER BY user_type, user_id")
+        return [{"type": row["user_type"], "id": row["user_id"], "balance": float(row["balance_usd"])} for row in rows]
+
+@api.get("/balances/{user_type}/{user_id}")
+async def get_balance(user_type: str, user_id: str):
+    """Get balance for specific user"""
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT balance_usd, payout_threshold_usd FROM balances WHERE user_type = $1 AND user_id = $2",
+            user_type, user_id
+        )
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {
+            "user_type": user_type,
+            "user_id": user_id,
+            "balance": float(row["balance_usd"]),
+            "payout_threshold": float(row["payout_threshold_usd"])
+        }
+
+@api.get("/payout-history")
+async def get_payout_history():
+    """Get recent payout history"""
+    async with db_pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT stellar_tx_hash, recipient_address, amount_usd, user_type, user_id, created_at
+            FROM payout_history 
+            ORDER BY created_at DESC 
+            LIMIT 50
+        """)
+        return [
+            {
+                "tx_hash": row["stellar_tx_hash"],
+                "recipient": row["recipient_address"],
+                "amount": float(row["amount_usd"]),
+                "user": f"{row['user_type']}/{row['user_id']}",
+                "timestamp": row["created_at"].isoformat()
+            }
+            for row in rows
+        ]
+
+@api.get("/stellar/info")
+async def stellar_info():
+    """Get Stellar configuration info"""
+    if not stellar_keypair:
+        return {"status": "not_configured", "message": "Stellar not initialized"}
+    
+    return {
+        "status": "configured",
+        "public_key": stellar_keypair.public_key,
+        "network": STELLAR_NETWORK,
+        "payment_asset": "XLM (native)"
+    }
+
+# User Profile Endpoints
+@api.get("/users/me")
+async def get_unified_profile(x_api_key: Optional[str] = Header(None)):
+    """Get unified user profile - works with current separate tables"""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="API key required")
+    
+    async with db_pool.acquire() as conn:
+        if x_api_key.startswith('rev_'):
+            reviewer = await conn.fetchrow("""
+                SELECT r.*, rs.*, b.balance_usd
+                FROM reviewers r
+                LEFT JOIN reviewer_stats rs ON r.id = rs.reviewer_id
+                LEFT JOIN balances b ON r.id::text = b.user_id AND b.user_type = 'reviewer'
+                WHERE r.api_key = $1
+            """, x_api_key)
+            
+            if reviewer:
+                return {
+                    "id": reviewer["id"],
+                    "name": reviewer["name"],
+                    "email": reviewer.get("email"),
+                    "type": "reviewer",
+                    "stellar_address": reviewer["stellar_address"],
+                    "roles": ["buyer", "reviewer"],
+                    "balance": float(reviewer["balance_usd"] or 0),
+                    "stats": {
+                        "total_reviews": reviewer["total_reviews"] or 0,
+                        "consensus_rate": float(reviewer["consensus_rate"] or 0),
+                        "accuracy_score": float(reviewer["accuracy_score"] or 0),
+                        "total_earned": float(reviewer["total_earned"] or 0)
+                    },
+                    "reputation_level": reviewer["reputation_level"] or "novice"
+                }
+        
+        elif x_api_key.startswith('sup_'):
+            supplier = await conn.fetchrow("""
+                SELECT s.*, b.balance_usd,
+                       COUNT(dp.id) as package_count
+                FROM suppliers s
+                LEFT JOIN balances b ON s.id::text = b.user_id AND b.user_type = 'supplier'
+                LEFT JOIN data_packages dp ON s.id = dp.supplier_id
+                WHERE s.api_key = $1 AND s.status = 'active'
+                GROUP BY s.id, b.balance_usd
+            """, x_api_key)
+            
+            if supplier:
+                return {
+                    "id": supplier["id"],
+                    "name": supplier["name"],
+                    "email": supplier["email"],
+                    "type": "supplier", 
+                    "stellar_address": supplier["stellar_address"],
+                    "roles": ["buyer", "supplier"],
+                    "balance": float(supplier["balance_usd"] or 0),
+                    "package_count": supplier["package_count"] or 0,
+                    "status": supplier["status"]
+                }
+        
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+@api.get("/users/me/payout-history")
+async def get_user_payout_history(x_api_key: Optional[str] = Header(None)):
+    """Get user's payout history"""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="API key required")
+    
+    async with db_pool.acquire() as conn:
+        user_id = None
+        user_type = None
+        
+        if x_api_key.startswith('rev_'):
+            reviewer = await conn.fetchval("SELECT id FROM reviewers WHERE api_key = $1", x_api_key)
+            if reviewer:
+                user_id = str(reviewer)
+                user_type = 'reviewer'
+        elif x_api_key.startswith('sup_'):
+            supplier = await conn.fetchval("SELECT id FROM suppliers WHERE api_key = $1", x_api_key)
+            if supplier:
+                user_id = str(supplier)
+                user_type = 'supplier'
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+            
+        payouts = await conn.fetch("""
+            SELECT stellar_tx_hash, amount_usd, created_at
+            FROM payout_history
+            WHERE user_type = $1 AND user_id = $2
+            ORDER BY created_at DESC
+            LIMIT 50
+        """, user_type, user_id)
+        
+        return [
+            {
+                "tx_hash": p["stellar_tx_hash"],
+                "amount": float(p["amount_usd"]),
+                "date": p["created_at"].isoformat()
+            } for p in payouts
+        ]
+
+@api.post("/users/me/update-payout-threshold")
+async def update_payout_threshold(
+    request: dict,
+    x_api_key: Optional[str] = Header(None)
+):
+    """Update user's payout threshold"""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="API key required")
+    
+    threshold = request.get("threshold")
+    if not threshold or threshold < 0.01:
+        raise HTTPException(status_code=400, detail="Invalid threshold")
+    
+    async with db_pool.acquire() as conn:
+        user_id = None
+        user_type = None
+        
+        if x_api_key.startswith('rev_'):
+            reviewer = await conn.fetchval("SELECT id FROM reviewers WHERE api_key = $1", x_api_key)
+            if reviewer:
+                user_id = str(reviewer)
+                user_type = 'reviewer'
+        elif x_api_key.startswith('sup_'):
+            supplier = await conn.fetchval("SELECT id FROM suppliers WHERE api_key = $1", x_api_key)
+            if supplier:
+                user_id = str(supplier)
+                user_type = 'supplier'
+        
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        
+        await conn.execute("""
+            UPDATE balances 
+            SET payout_threshold_usd = $1
+            WHERE user_type = $2 AND user_id = $3
+        """, threshold, user_type, user_id)
+        
+        return {"success": True, "new_threshold": threshold}
+
+# Admin Endpoints
+@api.post("/admin/migrate")
+async def run_migrations():
+    """Run database migrations - ADMIN ONLY"""
+    try:
+        await add_unique_constraints()
+        return {"status": "success", "message": "Database constraints applied"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Migration failed: {str(e)}")
+
+@api.post("/admin/process-payouts")
+async def trigger_payouts():
+    """Manually trigger payout processing (admin endpoint)"""
+    result = await process_payouts()
+    return result
+
+@api.post("/admin/create-review-task")
+async def create_review_task(
+    package_id: int,
+    task_type: str,
+    reward_pool: float = 0.05,
+    required_reviews: int = 3
+):
+    """Admin endpoint to manually create review tasks"""
+    async with db_pool.acquire() as conn:
+        package = await conn.fetchrow("""
+            SELECT * FROM data_packages WHERE id = $1
+        """, package_id)
+        
+        if not package:
+            raise HTTPException(status_code=404, detail="Package not found")
+        
+        reference_query = {
+            "endpoint": package["endpoint_url"],
+            "task_type": task_type,
+            "package_category": package["category"]
+        }
+        
+        task_id = await conn.fetchval("""
+            INSERT INTO review_tasks (package_id, task_type, required_reviews, reward_pool_usd, reference_query, created_by)
+            VALUES ($1, $2, $3, $4, $5, 'manual')
+            RETURNING id
+        """, package_id, task_type, required_reviews, reward_pool, json.dumps(reference_query))
+        
+        return {
+            "task_id": task_id,
+            "status": "created",
+            "package": package["name"],
+            "reward_pool": reward_pool
+        }
+
+@api.get("/admin/pii-logs")
+async def get_pii_logs(limit: int = 50):
+    """View PII detection logs"""
+    async with db_pool.acquire() as conn:
+        logs = await conn.fetch("""
+            SELECT pdl.*, s.name as supplier_name
+            FROM pii_detection_log pdl
+            JOIN suppliers s ON pdl.supplier_id = s.id
+            ORDER BY pdl.created_at DESC
+            LIMIT $1
+        """, limit)
+        
+        return [
+            {
+                "id": log["id"],
+                "supplier": log["supplier_name"],
+                "filename": log["filename"],
+                "pii_type": log["pii_type"],
+                "action": log["action_taken"],
+                "findings_count": log["findings_count"],
+                "blocked": log["blocked"],
+                "timestamp": log["created_at"].isoformat()
+            }
+            for log in logs
+        ]

@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SquidPro - Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #fafafa;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --border-primary: #f0f0f0;
+            --border-secondary: #e0e0e0;
+            --accent: #00bcd4;
+            --success: #00c851;
+            --error: #ff5252;
+            --warning: #ff9800;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+        }
+
+        .auth-container {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 480px;
+            margin: 2rem;
+        }
+
+        .auth-header {
+            text-align: center;
+            padding: 3rem 2rem 2rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .logo {
+            font-family: 'Magz', 'Inter', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .auth-content {
+            padding: 2rem;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 2rem;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .auth-tab.active {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--border-secondary);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: var(--bg-primary);
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-input.error {
+            border-color: var(--error);
+        }
+
+        .form-input.success {
+            border-color: var(--success);
+        }
+
+        .form-help {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .form-error {
+            font-size: 0.75rem;
+            color: var(--error);
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .form-success {
+            font-size: 0.75rem;
+            color: var(--success);
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .role-selection {
+            margin-bottom: 1.5rem;
+        }
+
+        .role-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .role-option {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border: 2px solid var(--border-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-primary);
+        }
+
+        .role-option:hover {
+            border-color: var(--accent);
+        }
+
+        .role-option.selected {
+            border-color: var(--accent);
+            background: rgba(0, 188, 212, 0.05);
+        }
+
+        .role-checkbox {
+            margin-right: 0.75rem;
+            width: 18px;
+            height: 18px;
+        }
+
+        .role-info h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .role-info p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .auth-button {
+            width: 100%;
+            padding: 1rem;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 1rem;
+        }
+
+        .auth-button:hover:not(:disabled) {
+            background: #00acc1;
+        }
+
+        .auth-button:disabled {
+            background: var(--border-secondary);
+            cursor: not-allowed;
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .message.error {
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        .message.success {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .message.warning {
+            background: rgba(255, 152, 0, 0.1);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .auth-footer {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .auth-footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stellar-help {
+            background: rgba(0, 188, 212, 0.1);
+            border: 1px solid var(--accent);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-secondary);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.8);
+            transition: all 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+    <a href="/catalog.html" class="back-link">← Back to Catalog</a>
+    
+    <div class="auth-container">
+        <div class="auth-header">
+            <div class="logo">SquidPro</div>
+            <p class="auth-subtitle">Access your data marketplace account</p>
+        </div>
+
+        <div class="auth-content">
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchTab('signin')">Sign In</button>
+                <button class="auth-tab" onclick="switchTab('signup')">Create Account</button>
+            </div>
+
+            <div id="message-container"></div>
+
+            <!-- Sign In Form -->
+            <form id="signin-form" class="auth-form active">
+                <div class="form-group">
+                    <label class="form-label" for="signin-username">Username</label>
+                    <input 
+                        type="text" 
+                        id="signin-username" 
+                        class="form-input" 
+                        placeholder="Enter your username"
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="signin-password">Password</label>
+                    <input 
+                        type="password" 
+                        id="signin-password" 
+                        class="form-input" 
+                        placeholder="Enter your password"
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+
+                <button type="submit" class="auth-button" id="signin-btn">
+                    Sign In
+                </button>
+
+                <div class="auth-footer">
+                    Don't have an account? 
+                    <a href="#" onclick="switchTab('signup')">Create one here</a>
+                </div>
+            </form>
+
+            <!-- Sign Up Form -->
+            <form id="signup-form" class="auth-form">
+                <div class="form-group">
+                    <label class="form-label" for="signup-username">Username</label>
+                    <input 
+                        type="text" 
+                        id="signup-username" 
+                        class="form-input" 
+                        placeholder="Choose a username"
+                        required
+                        minlength="3"
+                        maxlength="50"
+                        autocomplete="username"
+                    >
+                    <div class="form-error" id="username-error"></div>
+                    <div class="form-success" id="username-success"></div>
+                    <div class="form-help">3-50 characters, letters, numbers, and underscores only</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="signup-email">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="signup-email" 
+                        class="form-input" 
+                        placeholder="Enter your email address"
+                        required
+                        autocomplete="email"
+                    >
+                    <div class="form-error" id="email-error"></div>
+                    <div class="form-success" id="email-success"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="signup-name">Full Name</label>
+                    <input 
+                        type="text" 
+                        id="signup-name" 
+                        class="form-input" 
+                        placeholder="Enter your full name"
+                        required
+                        autocomplete="name"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="signup-stellar">Stellar Address</label>
+                    <input 
+                        type="text" 
+                        id="signup-stellar" 
+                        class="form-input" 
+                        placeholder="G..."
+                        required
+                        minlength="56"
+                        maxlength="56"
+                        value="GDXDSB444OLNDYOJAVGU3JWQO4BEGQT2MCVTDHLOWORRQODJJXO3GBDU"
+                    >
+                    <div class="stellar-help">
+                        Need a Stellar address? Create one at 
+                        <a href="https://laboratory.stellar.org/#account-creator" target="_blank">Stellar Laboratory</a>
+                        or use the pre-filled testing address
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="signup-password">Password</label>
+                    <input 
+                        type="password" 
+                        id="signup-password" 
+                        class="form-input" 
+                        placeholder="Choose a strong password"
+                        required
+                        minlength="8"
+                        autocomplete="new-password"
+                    >
+                    <div class="form-help">At least 8 characters</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="signup-password-repeat">Repeat Password</label>
+                    <input 
+                        type="password" 
+                        id="signup-password-repeat" 
+                        class="form-input" 
+                        placeholder="Repeat your password"
+                        required
+                        autocomplete="new-password"
+                    >
+                    <div class="form-error" id="password-error"></div>
+                </div>
+
+                <div class="role-selection">
+                    <label class="form-label">Account Roles</label>
+                    <div class="role-options">
+                        <div class="role-option" onclick="toggleRole('buyer')">
+                            <input type="checkbox" id="role-buyer" class="role-checkbox" checked disabled>
+                            <div class="role-info">
+                                <h4>Data Buyer</h4>
+                                <p>Purchase and access data packages (included by default)</p>
+                            </div>
+                        </div>
+                        <div class="role-option" onclick="toggleRole('supplier')">
+                            <input type="checkbox" id="role-supplier" class="role-checkbox">
+                            <div class="role-info">
+                                <h4>Data Supplier</h4>
+                                <p>Upload and sell your own data packages</p>
+                            </div>
+                        </div>
+                        <div class="role-option" onclick="toggleRole('reviewer')">
+                            <input type="checkbox" id="role-reviewer" class="role-checkbox">
+                            <div class="role-info">
+                                <h4>Quality Reviewer</h4>
+                                <p>Review data quality and earn rewards</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-button" id="signup-btn">
+                    Create Account
+                </button>
+
+                <div class="auth-footer">
+                    Already have an account? 
+                    <a href="#" onclick="switchTab('signin')">Sign in here</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8100';
+        let validationTimeouts = {};
+
+        // Tab switching
+        function switchTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+            
+            document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+            document.getElementById(`${tab}-form`).classList.add('active');
+            
+            clearMessage();
+        }
+
+        // Role selection
+        function toggleRole(role) {
+            if (role === 'buyer') return;
+            
+            const checkbox = document.getElementById(`role-${role}`);
+            const option = checkbox.closest('.role-option');
+            
+            checkbox.checked = !checkbox.checked;
+            option.classList.toggle('selected', checkbox.checked);
+        }
+
+        // Message system
+        function showMessage(message, type = 'error') {
+            const container = document.getElementById('message-container');
+            container.innerHTML = `<div class="message ${type}">${message}</div>`;
+            container.querySelector('.message').style.display = 'block';
+        }
+
+        function clearMessage() {
+            document.getElementById('message-container').innerHTML = '';
+        }
+
+        // Form validation
+        function showFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const errorDiv = document.getElementById(`${fieldId.replace('signup-', '')}-error`);
+            const successDiv = document.getElementById(`${fieldId.replace('signup-', '')}-success`);
+            
+            if (field) field.classList.add('error');
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
+            if (successDiv) successDiv.style.display = 'none';
+        }
+
+        function showFieldSuccess(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const errorDiv = document.getElementById(`${fieldId.replace('signup-', '')}-error`);
+            const successDiv = document.getElementById(`${fieldId.replace('signup-', '')}-success`);
+            
+            if (field) field.classList.remove('error');
+            if (errorDiv) errorDiv.style.display = 'none';
+            if (successDiv) {
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+            }
+        }
+
+        // Real-time validation
+        document.getElementById('signup-username').addEventListener('input', (e) => {
+            const username = e.target.value.trim();
+            
+            clearTimeout(validationTimeouts.username);
+            
+            if (username.length < 3) return;
+            
+            validationTimeouts.username = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/auth/check-username?username=${encodeURIComponent(username)}`);
+                    const data = await response.json();
+                    
+                    if (data.available) {
+                        showFieldSuccess('signup-username', '✓ Username is available');
+                    } else {
+                        showFieldError('signup-username', 'Username is already taken');
+                    }
+                } catch (error) {
+                    console.error('Username validation failed:', error);
+                }
+            }, 500);
+        });
+
+        document.getElementById('signup-email').addEventListener('input', (e) => {
+            const email = e.target.value.trim();
+            
+            clearTimeout(validationTimeouts.email);
+            
+            if (!email.includes('@')) return;
+            
+            validationTimeouts.email = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/auth/check-email?email=${encodeURIComponent(email)}`);
+                    const data = await response.json();
+                    
+                    if (data.available) {
+                        showFieldSuccess('signup-email', '✓ Email is available');
+                    } else {
+                        showFieldError('signup-email', 'Email is already registered');
+                    }
+                } catch (error) {
+                    console.error('Email validation failed:', error);
+                }
+            }, 500);
+        });
+
+        document.getElementById('signup-password-repeat').addEventListener('input', (e) => {
+            const password = document.getElementById('signup-password').value;
+            const repeatPassword = e.target.value;
+            
+            const errorDiv = document.getElementById('password-error');
+            
+            if (repeatPassword && password !== repeatPassword) {
+                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.style.display = 'block';
+                e.target.classList.add('error');
+            } else {
+                errorDiv.style.display = 'none';
+                e.target.classList.remove('error');
+            }
+        });
+
+        // Form submissions
+        document.getElementById('signin-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('signin-btn');
+            const username = document.getElementById('signin-username').value.trim();
+            const password = document.getElementById('signin-password').value;
+            
+            if (!username || !password) {
+                showMessage('Please enter both username and password', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>Signing in...';
+            clearMessage();
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('squidpro_session', data.session_token);
+                    localStorage.setItem('squidpro_user', JSON.stringify(data.user));
+                    
+                    showMessage('Sign in successful! Redirecting...', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/catalog.html';
+                    }, 1500);
+                } else {
+                    showMessage(data.detail || 'Invalid username or password', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'error');
+                console.error('Sign in error:', error);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Sign In';
+            }
+        });
+
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('signup-btn');
+            const formData = {
+                username: document.getElementById('signup-username').value.trim(),
+                name: document.getElementById('signup-name').value.trim(),
+                email: document.getElementById('signup-email').value.trim(),
+                password: document.getElementById('signup-password').value,
+                repeat_password: document.getElementById('signup-password-repeat').value,
+                stellar_address: document.getElementById('signup-stellar').value.trim(),
+                roles: []
+            };
+
+            // Collect selected roles
+            if (document.getElementById('role-buyer').checked) formData.roles.push('buyer');
+            if (document.getElementById('role-supplier').checked) formData.roles.push('supplier');
+            if (document.getElementById('role-reviewer').checked) formData.roles.push('reviewer');
+
+            // Basic validation
+            if (!formData.username || !formData.email || !formData.password || !formData.name) {
+                showMessage('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (formData.password !== formData.repeat_password) {
+                showMessage('Passwords do not match', 'error');
+                return;
+            }
+
+            if (formData.roles.length === 0) {
+                formData.roles.push('buyer');
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span>Creating account...';
+            clearMessage();
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('Account created successfully! Signing you in...', 'success');
+                    
+                    setTimeout(async () => {
+                        try {
+                            const loginResponse = await fetch(`${API_BASE}/auth/login`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    username: formData.username,
+                                    password: formData.password
+                                })
+                            });
+
+                            const loginData = await loginResponse.json();
+
+                            if (loginResponse.ok) {
+                                localStorage.setItem('squidpro_session', loginData.session_token);
+                                localStorage.setItem('squidpro_user', JSON.stringify(loginData.user));
+                                
+                                window.location.href = '/catalog.html';
+                            } else {
+                                showMessage('Account created but auto-login failed. Please sign in manually.', 'warning');
+                                switchTab('signin');
+                            }
+                        } catch (error) {
+                            showMessage('Account created but auto-login failed. Please sign in manually.', 'warning');
+                            switchTab('signin');
+                        }
+                    }, 1500);
+                } else {
+                    showMessage(data.detail || 'Registration failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                showMessage('Network error. Please try again.', 'error');
+                console.error('Registration error:', error);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Create Account';
+            }
+        });
+
+        // Initialize
+        window.addEventListener('load', () => {
+            const user = localStorage.getItem('squidpro_user');
+            if (user) {
+                window.location.href = '/catalog.html';
+            }
+        });
+    </script>
+</body>
+</html>

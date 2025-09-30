@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SquidPro Data Catalog</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #fafafa;
+            --bg-tertiary: #f8f8f8;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --border-primary: #f0f0f0;
+            --border-secondary: #e0e0e0;
+            --accent: #00bcd4;
+            --success: #00c851;
+            --error: #ff5252;
+            --sidebar-width: 280px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-weight: 300;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-primary);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        /* Logo Section */
+        .sidebar-logo {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .logo {
+            font-family: 'Magz', 'Inter', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        /* Navigation Section */
+        .sidebar-nav {
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .nav-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 1.5rem 1rem;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 400;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent);
+            background: rgba(0, 188, 212, 0.05);
+        }
+
+        .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--accent);
+        }
+
+        /* User Section */
+        .sidebar-user {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .user-greeting {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .user-info {
+            margin-bottom: 1.5rem;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .user-email {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+        }
+
+        .user-roles {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .role-badge {
+            padding: 0.2rem 0.5rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-secondary);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            border-radius: 12px;
+        }
+
+        .role-badge.supplier {
+            background: rgba(0, 188, 212, 0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .role-badge.reviewer {
+            background: rgba(0, 200, 81, 0.1);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .api-key-section {
+            margin-bottom: 1rem;
+        }
+
+        .api-key-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .api-key-display {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-primary);
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-secondary);
+            font-family: monospace;
+            font-size: 0.7rem;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #00acc1;
+        }
+
+        .user-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .user-action-link {
+            padding: 0.5rem 0;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s ease;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .user-action-link:hover {
+            color: var(--accent);
+        }
+
+        .user-action-link:last-child {
+            border-bottom: none;
+        }
+
+        .logout-btn {
+            width: 100%;
+            background: none;
+            border: 1px solid var(--border-secondary);
+            padding: 0.75rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        /* Quick Actions */
+        .quick-actions-sidebar {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .quick-action {
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-secondary);
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .quick-action:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .quick-action.primary {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .quick-action.primary:hover {
+            background: #00acc1;
+        }
+
+        /* Auth Required Section */
+        .auth-required-sidebar {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .auth-required-sidebar h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .auth-required-sidebar p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .auth-btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: background 0.2s;
+        }
+
+        .auth-btn:hover {
+            background: #00acc1;
+        }
+
+        /* Mobile Menu Button */
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-secondary);
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .main {
+            padding: 3rem 0;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .hero p {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .search-section {
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .search-row {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 1.5rem;
+            align-items: end;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .search-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .search-input, .filter-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-secondary);
+            background: var(--bg-primary);
+            font-size: 1rem;
+            border-radius: 6px;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-input:focus, .filter-select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .search-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            border: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .search-btn:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Package cards */
+        .packages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .package-card {
+            border: 1px solid var(--border-primary);
+            background: var(--bg-primary);
+            transition: all 0.2s ease;
+            padding: 2rem;
+            border-radius: 8px;
+        }
+
+        .package-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .package-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .package-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .package-supplier {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .package-price {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .package-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        .package-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tag {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border: 1px solid var(--border-secondary);
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
+            border-radius: 12px;
+        }
+
+        .tag.category {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(0, 188, 212, 0.05);
+        }
+
+        .package-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--text-primary);
+            background: transparent;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.2s ease;
+            border-radius: 6px;
+        }
+
+        .btn-primary {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .error {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 82, 82, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            margin: 1rem 0;
+            border-radius: 6px;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .container {
+                padding: 0 1rem;
+            }
+
+            .search-row {
+                grid-template-columns: 1fr;
+            }
+
+            .packages-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleSidebar()">
+        ☰
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <!-- Logo -->
+        <div class="sidebar-logo">
+            <a href="/" class="logo">SquidPro</a>
+        </div>
+
+        <!-- Navigation -->
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Navigation</div>
+            <a href="/catalog.html" class="nav-link active">Data Catalog</a>
+            <a href="/profile.html" class="nav-link">Profile</a>
+        </div>
+
+        <!-- Authentication Status -->
+        <div id="sidebar-auth-section">
+            <!-- Populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+        <main class="main">
+            <div class="container">
+                <div class="hero">
+                    <h1>Data Catalog</h1>
+                    <p>Quality-verified data feeds for AI agents with transparent pricing and peer-reviewed reliability scores.</p>
+                </div>
+
+                <div class="search-section">
+                    <div class="search-row">
+                        <div class="search-group">
+                            <label for="search">Search packages</label>
+                            <input 
+                                type="text" 
+                                id="search" 
+                                class="search-input" 
+                                placeholder="Search by name, description, or tags..."
+                            >
+                        </div>
+                        <div class="search-group">
+                            <label for="category">Category</label>
+                            <select id="category" class="filter-select">
+                                <option value="">All Categories</option>
+                                <option value="financial">Financial</option>
+                                <option value="weather">Weather</option>
+                                <option value="social">Social</option>
+                                <option value="news">News</option>
+                            </select>
+                        </div>
+                        <div class="search-group">
+                            <label>&nbsp;</label>
+                            <button class="search-btn" onclick="loadPackages()">Search</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="packages-container">
+                    <div class="loading">Loading data packages...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Sample Data Modal -->
+    <div id="sample-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Sample Data</h3>
+                <button class="modal-close" onclick="closeSampleModal()">&times;</button>
+            </div>
+            <div id="sample-content">
+                <!-- Sample data will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8100';
+        let allPackages = [];
+        let currentUser = null;
+
+        // Sidebar toggle for mobile
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('show');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+            }
+        }
+
+        // Authentication functions
+        function getCurrentUser() {
+            const sessionToken = localStorage.getItem('squidpro_session');
+            const userData = localStorage.getItem('squidpro_user');
+            
+            if (sessionToken && userData) {
+                try {
+                    return JSON.parse(userData);
+                } catch (e) {
+                    localStorage.removeItem('squidpro_session');
+                    localStorage.removeItem('squidpro_user');
+                }
+            }
+            return null;
+        }
+
+        function checkAuthStatus() {
+            currentUser = getCurrentUser();
+            const authSection = document.getElementById('sidebar-auth-section');
+            
+            if (currentUser) {
+                // User is authenticated
+                authSection.innerHTML = `
+                    <div class="sidebar-user">
+                        <div class="user-greeting">Welcome back!</div>
+                        <div class="user-info">
+                            <div class="user-name">${currentUser.name}</div>
+                            <div class="user-email">${currentUser.email}</div>
+                            <div class="user-roles">
+                                ${currentUser.roles.map(role => 
+                                    `<span class="role-badge ${role}">${role}</span>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        <div class="api-key-section">
+                            <div class="api-key-label">Your API Key</div>
+                            <div class="api-key-display">
+                                <span>${currentUser.api_key}</span>
+                                <button class="copy-btn" onclick="copyApiKey()">Copy</button>
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            <a href="#" class="user-action-link" onclick="showAccountDetails()">Account Details</a>
+                            <a href="#" class="user-action-link" onclick="showPurchaseHistory()">Purchase History</a>
+                        </div>
+                        <button class="logout-btn" onclick="logout()">Sign Out</button>
+                    </div>
+                `;
+                
+                updateRoleBasedQuickActions(currentUser.roles);
+            } else {
+                // User is not authenticated
+                authSection.innerHTML = `
+                    <div class="auth-required-sidebar">
+                        <h3>Sign In Required</h3>
+                        <p>Access your account to manage packages and view purchase history.</p>
+                        <a href="/auth.html" class="auth-btn">Sign In</a>
+                    </div>
+                `;
+            }
+        }
+
+        function updateRoleBasedQuickActions(roles) {
+            const quickActionsHtml = generateQuickActions(roles);
+            if (quickActionsHtml) {
+                const authSection = document.getElementById('sidebar-auth-section');
+                authSection.innerHTML = `
+                    <div class="quick-actions-sidebar">
+                        <div class="nav-section-title">Quick Actions</div>
+                        ${quickActionsHtml}
+                    </div>
+                ` + authSection.innerHTML;
+            }
+        }
+
+        function generateQuickActions(roles) {
+            let actions = [];
+            
+            if (roles.includes('supplier')) {
+                actions.push('<button class="quick-action primary" onclick="uploadData()">Upload Data Package</button>');
+                actions.push('<button class="quick-action" onclick="managePackages()">Manage My Packages</button>');
+            }
+            
+            if (roles.includes('reviewer')) {
+                actions.push('<button class="quick-action" onclick="viewReviewTasks()">Available Reviews</button>');
+                actions.push('<button class="quick-action" onclick="reviewDashboard()">Review Dashboard</button>');
+            }
+            
+            actions.push('<button class="quick-action" onclick="viewPurchases()">My Purchases</button>');
+            
+            return actions.join('');
+        }
+
+        function copyApiKey() {
+            if (currentUser) {
+                navigator.clipboard.writeText(currentUser.api_key).then(() => {
+                    const btn = event.target;
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 2000);
+                });
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('squidpro_session');
+            localStorage.removeItem('squidpro_user');
+            window.location.href = '/auth.html';
+        }
+
+        // Role-based action handlers
+        function uploadData() {
+            if (!currentUser) return;
+            window.location.href = '/upload.html';
+        }
+
+        function managePackages() {
+            if (!currentUser) return;
+            alert('Package management dashboard coming soon!');
+        }
+
+        function viewReviewTasks() {
+            if (!currentUser) return;
+            alert('Review tasks interface coming soon!');
+        }
+
+        function reviewDashboard() {
+            if (!currentUser) return;
+            alert('Review dashboard coming soon!');
+        }
+
+        function viewPurchases() {
+            if (!currentUser) return;
+            alert('Purchase history coming soon!');
+        }
+
+        function showAccountDetails() {
+            if (!currentUser) return;
+            alert(`Account Details:\n\nUsername: ${currentUser.username}\nName: ${currentUser.name}\nEmail: ${currentUser.email}\nRoles: ${currentUser.roles.join(', ')}\nAPI Key: ${currentUser.api_key}`);
+        }
+
+        function showPurchaseHistory() {
+            alert('Purchase history feature coming soon!');
+        }
+
+        // Package loading and display
+        async function loadPackages() {
+            const container = document.getElementById('packages-container');
+            container.innerHTML = '<div class="loading">Loading data packages...</div>';
+
+            try {
+                const packagesResponse = await fetch(`${API_BASE}/packages`);
+                if (!packagesResponse.ok) throw new Error('Failed to load packages');
+                
+                const packages = await packagesResponse.json();
+                allPackages = packages;
+
+                const packagesWithQuality = await Promise.all(
+                    packages.map(async (pkg) => {
+                        try {
+                            const qualityResponse = await fetch(`${API_BASE}/packages/${pkg.id}/quality`);
+                            if (qualityResponse.ok) {
+                                const quality = await qualityResponse.json();
+                                return { ...pkg, quality };
+                            }
+                        } catch (error) {
+                            console.log(`No quality data for package ${pkg.id}`);
+                        }
+                        return pkg;
+                    })
+                );
+
+                displayPackages(packagesWithQuality);
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="error">
+                        Failed to load packages. Make sure SquidPro API is running.
+                        <br><br>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function displayPackages(packages) {
+            const container = document.getElementById('packages-container');
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const categoryFilter = document.getElementById('category').value;
+
+            let filteredPackages = packages.filter(pkg => {
+                const matchesSearch = !searchTerm || 
+                    pkg.name.toLowerCase().includes(searchTerm) ||
+                    pkg.description.toLowerCase().includes(searchTerm) ||
+                    (pkg.tags && pkg.tags.some(tag => tag.toLowerCase().includes(searchTerm)));
+                
+                const matchesCategory = !categoryFilter || pkg.category === categoryFilter;
+                
+                return matchesSearch && matchesCategory;
+            });
+
+            if (filteredPackages.length === 0) {
+                container.innerHTML = `
+                    <div class="error">No packages found matching your criteria.</div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="packages-grid">
+                    ${filteredPackages.map(pkg => createPackageCard(pkg)).join('')}
+                </div>
+            `;
+        }
+
+        function createPackageCard(pkg) {
+            const hasQuality = pkg.quality && pkg.quality.total_reviews > 0;
+            const overallRating = hasQuality ? pkg.quality.scores.overall_rating : 0;
+            const totalReviews = hasQuality ? pkg.quality.total_reviews : 0;
+
+            const canPurchase = currentUser !== null;
+            const purchaseButton = canPurchase 
+                ? `<button class="btn btn-primary" onclick="purchaseAccess(${pkg.id}, '${pkg.name}')">Purchase Access</button>`
+                : `<a href="/auth.html" class="btn btn-primary">Sign In to Purchase</a>`;
+
+            return `
+                <div class="package-card">
+                    <div class="package-header">
+                        <div>
+                            <h3 class="package-title">${pkg.name}</h3>
+                            <p class="package-supplier">${pkg.supplier}</p>
+                        </div>
+                        <div class="package-price">$${pkg.price_per_query}</div>
+                    </div>
+                    
+                    <p class="package-description">${pkg.description}</p>
+                    
+                    <div class="package-tags">
+                        <span class="tag category">${pkg.category}</span>
+                        ${(pkg.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                    
+                    ${hasQuality ? `
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-weight: 500;">Quality Score</span>
+                                <span style="font-weight: 600; color: var(--success);">${overallRating.toFixed(1)}/10</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                                Based on ${totalReviews} review${totalReviews !== 1 ? 's' : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="package-actions">
+                        ${purchaseButton}
+                        <button class="btn btn-secondary" onclick="showSampleData(${pkg.id})">View Sample</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function purchaseAccess(packageId, packageName) {
+            if (!currentUser) {
+                window.location.href = '/auth.html';
+                return;
+            }
+            
+            alert(`Purchase access for "${packageName}":\n\n1. Use your API key: ${currentUser.api_key}\n2. Mint token: POST /mint\n3. Query package: GET /data/package/${packageId}\n\nFull integration coming soon!`);
+        }
+
+        function showSampleData(packageId) {
+            const pkg = allPackages.find(p => p.id === packageId);
+            const modal = document.getElementById('sample-modal');
+            const content = document.getElementById('sample-content');
+            
+            if (pkg && pkg.sample_data) {
+                content.innerHTML = `
+                    <h4>${pkg.name} - Sample Data</h4>
+                    <pre style="background: var(--bg-secondary); padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: 0.8rem;">${JSON.stringify(pkg.sample_data, null, 2)}</pre>
+                `;
+            } else {
+                content.innerHTML = '<p>No sample data available for this package.</p>';
+            }
+            
+            modal.classList.add('show');
+        }
+
+        function closeSampleModal() {
+            document.getElementById('sample-modal').classList.remove('show');
+        }
+
+        // Event listeners
+        document.getElementById('search').addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                loadPackages();
+            }
+        });
+
+        document.getElementById('category').addEventListener('change', loadPackages);
+
+        // Close modal when clicking outside
+        document.getElementById('sample-modal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeSampleModal();
+            }
+        });
+
+        // Handle window resize for responsive behavior
+        window.addEventListener('resize', () => {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('show');
+                if (!sidebar.classList.contains('collapsed')) {
+                    mainContent.classList.remove('expanded');
+                }
+            }
+        });
+
+        // Initialize
+        checkAuthStatus();
+        loadPackages();
+    </script>
+</body>
+</html>

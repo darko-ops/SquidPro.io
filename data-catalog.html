@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SquidPro Data Catalog</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #bcbf8f 0%, #5ca24b 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-family: 'Magz', sans-serif;  
+            font-weight: 800;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .api-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main {
+            padding: 2rem 0;
+        }
+
+        .hero {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .search-filters {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .search-row {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .search-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-group label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+
+        .search-input {
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .filter-select {
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-btn {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #257d19, #27212e);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .packages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .package-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .package-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        .package-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .package-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .package-supplier {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .package-price {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #059669;
+        }
+
+        .package-description {
+            color: #4b5563;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .package-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tag {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .quality-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .quality-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .quality-title {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .overall-rating {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .rating-score {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: #059669;
+        }
+
+        .rating-stars {
+            color: #fbbf24;
+        }
+
+        .quality-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .metric {
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .package-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .integration-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .integration-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+
+        .code-example {
+            background: #1f2937;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+
+        .code-example pre {
+            color: #e5e7eb;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: white;
+            font-size: 1.1rem;
+        }
+
+        .error {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 12px;
+            color: #dc2626;
+            margin: 1rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .search-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .packages-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .quality-metrics {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">SquidPro</div>
+                <div class="api-status">
+                    <div class="status-dot"></div>
+                    <span id="api-status-text">API Connected</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div class="hero">
+                <h1>Data Catalog</h1>
+                <p>Discover verified data feeds for your AI agents. Browse quality-scored packages from trusted suppliers with real-time pricing.</p>
+            </div>
+
+            <div class="search-filters">
+                <div class="search-row">
+                    <div class="search-group">
+                        <label for="search">Search packages</label>
+                        <input 
+                            type="text" 
+                            id="search" 
+                            class="search-input" 
+                            placeholder="Search by name, description, or tags..."
+                        >
+                    </div>
+                    <div class="search-group">
+                        <label for="category">Category</label>
+                        <select id="category" class="filter-select">
+                            <option value="">All Categories</option>
+                            <option value="financial">Financial</option>
+                            <option value="weather">Weather</option>
+                            <option value="social">Social</option>
+                            <option value="news">News</option>
+                        </select>
+                    </div>
+                    <div class="search-group">
+                        <label>&nbsp;</label>
+                        <button class="search-btn" onclick="loadPackages()">Search</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="packages-container">
+                <div class="loading">
+                    Loading data packages...
+                </div>
+            </div>
+
+            <div class="integration-section">
+                <h2 class="integration-title">Quick Integration for AI Agents</h2>
+                <p style="margin-bottom: 1.5rem; color: #4b5563;">Get started with SquidPro in 3 simple steps:</p>
+                
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #1f2937; margin-bottom: 0.5rem;">1. Get an API Token</h3>
+                    <div class="code-example">
+                        <pre>curl -X POST http://localhost:8100/mint \
+  -H "Content-Type: application/json" \
+  -d '{"agent_id":"my-ai-agent","credits":10.0}'</pre>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #1f2937; margin-bottom: 0.5rem;">2. Query Any Data Package</h3>
+                    <div class="code-example">
+                        <pre>curl -H "Authorization: Bearer YOUR_TOKEN" \
+  "http://localhost:8100/data/package/1"</pre>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="color: #1f2937; margin-bottom: 0.5rem;">3. Get Data + Receipt</h3>
+                    <div class="code-example">
+                        <pre>{
+  "trace_id": "...",
+  "package_name": "Crypto Price Feed", 
+  "data": {"price": 65000.50, "volume": 123.45},
+  "cost": 0.005,
+  "payout": {"supplier": 0.0035, "reviewer_pool": 0.001}
+}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'http://localhost:8100';
+        let allPackages = [];
+
+        async function checkAPIStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    document.getElementById('api-status-text').textContent = 'API Connected';
+                    return true;
+                }
+            } catch (error) {
+                document.getElementById('api-status-text').textContent = 'API Disconnected';
+                return false;
+            }
+        }
+
+        async function loadPackages() {
+            const container = document.getElementById('packages-container');
+            container.innerHTML = '<div class="loading">Loading data packages...</div>';
+
+            try {
+                // Load packages
+                const packagesResponse = await fetch(`${API_BASE}/packages`);
+                if (!packagesResponse.ok) throw new Error('Failed to load packages');
+                
+                const packages = await packagesResponse.json();
+                allPackages = packages;
+
+                // Load quality scores for each package
+                const packagesWithQuality = await Promise.all(
+                    packages.map(async (pkg) => {
+                        try {
+                            const qualityResponse = await fetch(`${API_BASE}/packages/${pkg.id}/quality`);
+                            if (qualityResponse.ok) {
+                                const quality = await qualityResponse.json();
+                                return { ...pkg, quality };
+                            }
+                        } catch (error) {
+                            console.log(`No quality data for package ${pkg.id}`);
+                        }
+                        return pkg;
+                    })
+                );
+
+                displayPackages(packagesWithQuality);
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="error">
+                        Failed to load packages. Make sure SquidPro API is running on port 8100.
+                        <br><br>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function displayPackages(packages) {
+            const container = document.getElementById('packages-container');
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const categoryFilter = document.getElementById('category').value;
+
+            // Filter packages
+            let filteredPackages = packages.filter(pkg => {
+                const matchesSearch = !searchTerm || 
+                    pkg.name.toLowerCase().includes(searchTerm) ||
+                    pkg.description.toLowerCase().includes(searchTerm) ||
+                    (pkg.tags && pkg.tags.some(tag => tag.toLowerCase().includes(searchTerm)));
+                
+                const matchesCategory = !categoryFilter || pkg.category === categoryFilter;
+                
+                return matchesSearch && matchesCategory;
+            });
+
+            if (filteredPackages.length === 0) {
+                container.innerHTML = `
+                    <div class="error">
+                        No packages found matching your criteria.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="packages-grid">
+                    ${filteredPackages.map(pkg => createPackageCard(pkg)).join('')}
+                </div>
+            `;
+        }
+
+        function createPackageCard(pkg) {
+            const hasQuality = pkg.quality && pkg.quality.total_reviews > 0;
+            const overallRating = hasQuality ? pkg.quality.scores.overall_rating : 0;
+            const totalReviews = hasQuality ? pkg.quality.total_reviews : 0;
+
+            return `
+                <div class="package-card">
+                    <div class="package-header">
+                        <div>
+                            <h3 class="package-title">${pkg.name}</h3>
+                            <p class="package-supplier">by ${pkg.supplier}</p>
+                        </div>
+                        <div class="package-price">$${pkg.price_per_query}</div>
+                    </div>
+                    
+                    <p class="package-description">${pkg.description}</p>
+                    
+                    <div class="package-tags">
+                        <span class="tag">${pkg.category}</span>
+                        ${(pkg.tags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                    
+                    ${hasQuality ? `
+                        <div class="quality-section">
+                            <div class="quality-header">
+                                <span class="quality-title">Quality Score</span>
+                                <div class="overall-rating">
+                                    <span class="rating-score">${overallRating.toFixed(1)}/10</span>
+                                    <span class="rating-stars">${'★'.repeat(Math.round(overallRating/2))}</span>
+                                </div>
+                            </div>
+                            <div class="quality-metrics">
+                                <div class="metric">
+                                    <div class="metric-label">Accuracy</div>
+                                    <div class="metric-value">${pkg.quality.scores.quality.toFixed(1)}</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-label">Freshness</div>
+                                    <div class="metric-value">${pkg.quality.scores.timeliness.toFixed(1)}</div>
+                                </div>
+                                <div class="metric">
+                                    <div class="metric-label">Schema</div>
+                                    <div class="metric-value">${pkg.quality.scores.schema_compliance.toFixed(1)}</div>
+                                </div>
+                            </div>
+                            <p style="font-size: 0.8rem; color: #6b7280; margin-top: 0.5rem;">
+                                Based on ${totalReviews} review${totalReviews !== 1 ? 's' : ''}
+                            </p>
+                        </div>
+                    ` : `
+                        <div class="quality-section">
+                            <div class="quality-header">
+                                <span class="quality-title">Quality Score</span>
+                                <div class="overall-rating">
+                                    <span style="color: #6b7280;">Not yet reviewed</span>
+                                </div>
+                            </div>
+                        </div>
+                    `}
+                    
+                    <div class="package-actions">
+                        <button class="btn btn-primary" onclick="showIntegrationCode(${pkg.id}, '${pkg.name}')">
+                            Use Package
+                        </button>
+                        <button class="btn btn-secondary" onclick="showSampleData(${pkg.id})">
+                            View Sample
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showIntegrationCode(packageId, packageName) {
+            alert(`Integration Code for "${packageName}":\n\n` +
+                  `1. Mint token: POST /mint\n` +
+                  `2. Query package: GET /data/package/${packageId}\n` +
+                  `3. Use Authorization: Bearer YOUR_TOKEN header\n\n` +
+                  `See integration section below for full examples.`);
+        }
+
+        function showSampleData(packageId) {
+            const pkg = allPackages.find(p => p.id === packageId);
+            if (pkg && pkg.sample_data) {
+                alert(`Sample Data:\n\n${JSON.stringify(pkg.sample_data, null, 2)}`);
+            } else {
+                alert('No sample data available for this package.');
+            }
+        }
+
+        // Event listeners
+        document.getElementById('search').addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                loadPackages();
+            }
+        });
+
+        document.getElementById('category').addEventListener('change', loadPackages);
+
+        // Initialize
+        checkAPIStatus();
+        loadPackages();
+
+        // Refresh API status every 30 seconds
+        setInterval(checkAPIStatus, 30000);
+    </script>
+</body>
+</html>
