@@ -1697,10 +1697,12 @@ async def get_available_validation_tasks(
         ]
 
 # Submit validation
+# Add this endpoint to your app.py
+
 @api.post("/validation-tasks/{task_id}/submit")
 async def submit_validation(
     task_id: int,
-    validation: dict,  # Should contain validation_data, passed, confidence_score, notes
+    validation: dict,  # Contains: passed, confidence_score, notes, validation_data
     x_api_key: Optional[str] = Header(None)
 ):
     """Submit a validation for a task - uses unified usr_ auth"""
@@ -1745,18 +1747,25 @@ async def submit_validation(
         json.dumps(validation.get("validation_data", {})), 
         validation.get("notes", ""))
         
+        logging.info(f"Validation submission {submission_id} created by validator {user['user_id']} for task {task_id}")
+        
         # Check if we have enough submissions for consensus
         submission_count = await conn.fetchval("""
             SELECT COUNT(*) FROM validation_submissions WHERE task_id = $1
         """, task_id)
         
+        logging.info(f"Task {task_id} now has {submission_count}/{task['required_validations']} submissions")
+        
         if submission_count >= task["required_validations"]:
+            logging.info(f"Task {task_id} reached required validations, processing consensus...")
             await process_validation_consensus(conn, task_id)
         
         return {
             "submission_id": submission_id,
             "status": "submitted",
             "task_name": task["package_name"],
+            "submissions_count": submission_count,
+            "required_count": task["required_validations"],
             "message": f"Validation submitted. {task['required_validations'] - submission_count} more validations needed for consensus."
         }
 

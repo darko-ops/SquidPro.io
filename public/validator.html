@@ -653,14 +653,116 @@
             `).join('');
         }
 
-        function startValidation(taskId, packageName, validationType) {
-            alert(`Starting validation for ${packageName}\n\nTask ID: ${taskId}\nType: ${validationType}\n\nValidation submission form coming soon!`);
-        }
-
         function viewTaskDetails(taskId) {
             alert(`Task details view coming soon!\n\nTask ID: ${taskId}`);
         }
 
+        function updateConfidenceDisplay() {
+    const value = document.getElementById('confidence-score').value;
+    document.getElementById('confidence-display').textContent = `${value}%`;
+}
+
+function startValidation(taskId, packageName, validationType) {
+    document.getElementById('task-id').value = taskId;
+    document.getElementById('modal-package-name').textContent = packageName;
+    document.getElementById('modal-validation-type').value = validationType;
+    document.getElementById('modal-type-display').textContent = validationType.replace(/_/g, ' ');
+    
+    // Reset form
+    document.getElementById('validation-form').reset();
+    document.getElementById('confidence-score').value = 80;
+    updateConfidenceDisplay();
+    document.getElementById('modal-status').innerHTML = '';
+    
+    // Show modal
+    const modal = document.getElementById('validation-modal');
+    modal.style.display = 'flex';
+}
+
+function closeValidationModal() {
+    document.getElementById('validation-modal').style.display = 'none';
+    document.getElementById('validation-form').reset();
+}
+
+// Handle form submission
+document.getElementById('validation-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const taskId = document.getElementById('task-id').value;
+    const result = document.getElementById('validation-result').value;
+    const confidence = parseFloat(document.getElementById('confidence-score').value) / 100;
+    const notes = document.getElementById('validation-notes').value;
+    const validationDataText = document.getElementById('validation-data').value;
+    const validationType = document.getElementById('modal-validation-type').value;
+
+    let validationData = {};
+    if (validationDataText.trim()) {
+        try {
+            validationData = JSON.parse(validationDataText);
+        } catch (e) {
+            document.getElementById('modal-status').innerHTML = 
+                '<div class="status-message status-error">Invalid JSON in validation data. Please fix or leave blank.</div>';
+            return;
+        }
+    }
+
+    const payload = {
+        passed: result === 'pass',
+        confidence_score: confidence,
+        notes: notes,
+        validation_data: validationData
+    };
+
+    const submitBtn = document.getElementById('submit-validation-btn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+
+    try {
+        debugLog(`Submitting validation for task ${taskId}...`);
+        
+        const response = await fetch(`${API_BASE}/validation-tasks/${taskId}/submit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': currentUser.api_key
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            debugLog(`✅ Validation submitted successfully!`);
+            document.getElementById('modal-status').innerHTML = 
+                '<div class="status-message status-success">✓ Validation submitted successfully!</div>';
+            
+            setTimeout(() => {
+                closeValidationModal();
+                loadAvailableTasks();
+                loadValidatorStats();
+            }, 2000);
+        } else {
+            debugLog(`❌ Validation submission failed: ${data.detail || 'Unknown error'}`);
+            document.getElementById('modal-status').innerHTML = 
+                `<div class="status-message status-error">Error: ${data.detail || 'Submission failed'}</div>`;
+        }
+    } catch (error) {
+        debugLog(`❌ Network error during validation submission: ${error.message}`);
+        document.getElementById('modal-status').innerHTML = 
+            '<div class="status-message status-error">Network error. Please try again.</div>';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Validation';
+    }
+});
+
+// Close modal when clicking outside
+document.getElementById('validation-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+        closeValidationModal();
+    }
+});
+</script>
         // Initialize
         async function init() {
             debugLog('=== INITIALIZING VALIDATOR PAGE ===');
@@ -694,5 +796,198 @@
         // Start the app
         init();
     </script>
+    <!-- Validation Modal -->
+    <div id="validation-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
+        <div style="background: var(--bg-primary); border-radius: 8px; padding: 2rem; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; margin: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="font-size: 1.5rem; font-weight: 600;">Submit Validation</h3>
+                <button onclick="closeValidationModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+            </div>
+            
+            <form id="validation-form">
+                <input type="hidden" id="task-id">
+                <input type="hidden" id="modal-validation-type">
+                
+                <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem;">
+                    <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Package:</div>
+                    <div style="font-weight: 600;" id="modal-package-name"></div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                        Validation Type: <span id="modal-type-display" style="color: var(--accent); font-weight: 500;"></span>
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 6px; margin-bottom: 1.5rem;">
+                    <div style="font-weight: 500; margin-bottom: 1rem;">Validation Checklist:</div>
+                    <div style="display: flex; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-primary); border-radius: 4px;">
+                        <input type="checkbox" id="check-1" required style="margin-right: 0.75rem; width: 18px; height: 18px;">
+                        <label for="check-1" style="font-size: 0.875rem;">Downloaded and inspected the dataset</label>
+                    </div>
+                    <div style="display: flex; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-primary); border-radius: 4px;">
+                        <input type="checkbox" id="check-2" required style="margin-right: 0.75rem; width: 18px; height: 18px;">
+                        <label for="check-2" style="font-size: 0.875rem;">Completed required validation checks</label>
+                    </div>
+                    <div style="display: flex; align-items: center; padding: 0.75rem; background: var(--bg-primary); border-radius: 4px;">
+                        <input type="checkbox" id="check-3" required style="margin-right: 0.75rem; width: 18px; height: 18px;">
+                        <label for="check-3" style="font-size: 0.875rem;">Documented findings and evidence</label>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Validation Result *</label>
+                    <select id="validation-result" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-secondary); border-radius: 6px; font-size: 0.9rem;">
+                        <option value="">Select result</option>
+                        <option value="pass">✓ Pass - Validation successful</option>
+                        <option value="fail">✗ Fail - Issues detected</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Confidence Score *</label>
+                    <input type="range" id="confidence-score" min="0" max="100" value="80" style="width: 100%;" oninput="updateConfidenceDisplay()">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                        <span>Low (0%)</span>
+                        <span id="confidence-display" style="font-weight: 600; color: var(--accent);">80%</span>
+                        <span>High (100%)</span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Findings & Evidence *</label>
+                    <textarea id="validation-notes" required style="width: 100%; min-height: 120px; padding: 0.75rem; border: 1px solid var(--border-secondary); border-radius: 6px; font-size: 0.9rem; font-family: inherit; resize: vertical;" placeholder="Describe your validation process, what you checked, and what you found..."></textarea>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">
+                        Technical Validation Data (JSON - Optional)
+                        <span style="color: var(--text-secondary); font-weight: 400;">- Advanced</span>
+                    </label>
+                    <textarea id="validation-data" style="width: 100%; min-height: 80px; padding: 0.75rem; border: 1px solid var(--border-secondary); border-radius: 6px; font-size: 0.875rem; font-family: monospace; resize: vertical;" placeholder='{"hash": "abc123...", "row_count": 1000, "schema_valid": true}'></textarea>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                        Provide detailed validation data as JSON (hashes, counts, etc.)
+                    </div>
+                </div>
+
+                <div id="modal-status"></div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-primary);">
+                    <button type="button" class="btn btn-secondary" onclick="closeValidationModal()">Cancel</button>
+                    <button type="submit" class="btn" id="submit-validation-btn">Submit Validation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    // Modal helper functions
+    function updateConfidenceDisplay() {
+        const value = document.getElementById('confidence-score').value;
+        document.getElementById('confidence-display').textContent = `${value}%`;
+    }
+
+    function closeValidationModal() {
+        document.getElementById('validation-modal').style.display = 'none';
+        document.getElementById('validation-form').reset();
+        document.getElementById('modal-status').innerHTML = '';
+    }
+
+    // Update the existing startValidation function
+    window.startValidation = function(taskId, packageName, validationType) {
+        document.getElementById('task-id').value = taskId;
+        document.getElementById('modal-package-name').textContent = packageName;
+        document.getElementById('modal-validation-type').value = validationType;
+        document.getElementById('modal-type-display').textContent = validationType.replace(/_/g, ' ');
+        
+        // Reset form
+        document.getElementById('validation-form').reset();
+        document.getElementById('confidence-score').value = 80;
+        updateConfidenceDisplay();
+        document.getElementById('modal-status').innerHTML = '';
+        
+        // Show modal
+        const modal = document.getElementById('validation-modal');
+        modal.style.display = 'flex';
+    };
+
+    // Form submission handler
+    document.getElementById('validation-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const taskId = document.getElementById('task-id').value;
+        const result = document.getElementById('validation-result').value;
+        const confidence = parseFloat(document.getElementById('confidence-score').value) / 100;
+        const notes = document.getElementById('validation-notes').value;
+        const validationDataText = document.getElementById('validation-data').value;
+
+        let validationData = {};
+        if (validationDataText.trim()) {
+            try {
+                validationData = JSON.parse(validationDataText);
+            } catch (e) {
+                document.getElementById('modal-status').innerHTML = 
+                    '<div class="status-message status-error">Invalid JSON in validation data. Please fix or leave blank.</div>';
+                return;
+            }
+        }
+
+        const payload = {
+            passed: result === 'pass',
+            confidence_score: confidence,
+            notes: notes,
+            validation_data: validationData
+        };
+
+        const submitBtn = document.getElementById('submit-validation-btn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+
+        try {
+            debugLog(`Submitting validation for task ${taskId}...`);
+            
+            const response = await fetch(`${API_BASE}/validation-tasks/${taskId}/submit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-Key': currentUser.api_key
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                debugLog(`✅ Validation submitted successfully!`);
+                document.getElementById('modal-status').innerHTML = 
+                    '<div class="status-message status-success">✓ Validation submitted successfully!</div>';
+                
+                setTimeout(() => {
+                    closeValidationModal();
+                    loadAvailableTasks();
+                    loadValidatorStats();
+                }, 2000);
+            } else {
+                debugLog(`❌ Validation submission failed: ${data.detail || 'Unknown error'}`);
+                document.getElementById('modal-status').innerHTML = 
+                    `<div class="status-message status-error">Error: ${data.detail || 'Submission failed'}</div>`;
+            }
+        } catch (error) {
+            debugLog(`❌ Network error: ${error.message}`);
+            document.getElementById('modal-status').innerHTML = 
+                '<div class="status-message status-error">Network error. Please try again.</div>';
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Validation';
+        }
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('validation-modal').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+            closeValidationModal();
+        }
+    });
+    </script>
+
+</body>  <!-- MODAL CODE ENDS HERE, RIGHT BEFORE THIS -->
+</html>
 </body>
 </html>
