@@ -381,21 +381,21 @@ WHERE package_type = 'upload'
 ON CONFLICT DO NOTHING;
 
 -- Initialize validator stats for users with validator role
-INSERT INTO validator_stats (validator_id)
-SELECT DISTINCT user_id 
+INSERT INTO validator_stats (validator_id, total_validations, consensus_rate, avg_confidence, total_earned, reputation_level)
+SELECT DISTINCT user_id, 0, 0, 0, 0, 'novice_validator'
 FROM user_roles 
 WHERE role_type = 'validator' AND is_active = TRUE
 ON CONFLICT (validator_id) DO NOTHING;
 
 -- Add validator balances
-INSERT INTO balances (user_type, user_id, payout_threshold_usd)
-SELECT 'validator', user_id::text, 5.00
+INSERT INTO balances (user_type, user_id, balance_usd, payout_threshold_usd)
+SELECT 'validator', user_id::text, 0.00, 5.00
 FROM user_roles
 WHERE role_type = 'validator' AND is_active = TRUE
 ON CONFLICT (user_type, user_id) DO NOTHING;
 
-
-INSERT INTO validation_tasks (package_id, validation_type, required_validations, reward_pool_usd, reference_data)
+-- 3. Create sample validation tasks for existing packages
+INSERT INTO validation_tasks (package_id, validation_type, required_validations, reward_pool_usd, reference_data, status, expires_at)
 SELECT 
     dp.id,
     'content_hash',
@@ -405,11 +405,13 @@ SELECT
         'package_id', dp.id,
         'package_name', dp.name,
         'category', dp.category,
-        'endpoint_url', dp.endpoint_url
-    )
+        'endpoint_url', dp.endpoint_url,
+        'created_at', NOW()::text
+    ),
+    'open',
+    NOW() + INTERVAL '48 hours'
 FROM data_packages dp
-WHERE dp.package_type = 'upload'
-AND NOT EXISTS (
+WHERE NOT EXISTS (
     SELECT 1 FROM validation_tasks vt 
     WHERE vt.package_id = dp.id 
     AND vt.validation_type = 'content_hash'
@@ -417,38 +419,123 @@ AND NOT EXISTS (
 )
 LIMIT 5;
 
-
--- 5. Verify setup
+-- 4. Create schema validation tasks
+INSERT INTO validation_tasks (package_id, validation_type, required_validations, reward_pool_usd, reference_data, status, expires_at)
 SELECT 
-    'Validators' as entity,
+    dp.id,
+    'schema',
+    3,
+    0.08,
+    jsonb_build_object(
+        'package_id', dp.id,
+        'package_name', dp.name,
+        'category', dp.category
+    ),
+    'open',
+    NOW() + INTERVAL '48 hours'
+FROM data_packages dp
+WHERE NOT EXISTS (
+    SELECT 1 FROM validation_tasks vt 
+    WHERE vt.package_id = dp.id 
+    AND vt.validation_type = 'schema'
+    AND vt.status = 'open'
+)
+LIMIT 5;
+
+-- 5. Create compliance validation tasks
+INSERT INTO validation_tasks (package_id, validation_type, required_validations, reward_pool_usd, reference_data, status, expires_at)
+SELECT 
+    dp.id,
+    'compliance',
+    3,
+    0.12,
+    jsonb_build_object(
+        'package_id', dp.id,
+        'package_name', dp.name,
+        'category', dp.category
+    ),
+    'open',
+    NOW() + INTERVAL '48 hours'
+FROM data_packages dp
+WHERE NOT EXISTS (
+    SELECT 1 FROM validation_tasks vt 
+    WHERE vt.package_id = dp.id 
+    AND vt.validation_type = 'compliance'
+    AND vt.status = 'open'
+)
+LIMIT 5;
+
+-- 6. Initialize package validation scores
+INSERT INTO package_validation_scores (package_id, consensus_score, total_validations)
+SELECT id, 0, 0
+FROM data_packages
+ON CONFLICT (package_id) DO NOTHING;
+
+-- 7. Verify setup
+SELECT 
+    'Users with Validator Role' as check_name,
     COUNT(*) as count
-FROM validator_stats
+FROM user_roles
+WHERE role_type = 'validator' AND is_active = TRUE
+
 UNION ALL
+
+SELECT 
+    'Validator Stats Initialized',
+    COUNT(*)
+FROM validator_stats
+
+UNION ALL
+
 SELECT 
     'Validator Balances',
     COUNT(*)
 FROM balances
 WHERE user_type = 'validator'
+
 UNION ALL
+
 SELECT 
     'Open Validation Tasks',
     COUNT(*)
 FROM validation_tasks
-WHERE status = 'open' AND expires_at > NOW()
-UNION ALL
-SELECT 
-    'Users with Validator Role',
-    COUNT(DISTINCT user_id)
-FROM user_roles
-WHERE role_type = 'validator' AND is_active = TRUE;
+WHERE status = 'open' AND expires_at > NOW();
 
--- 6. Show sample data
+-- 8. Show available tasks
 SELECT 
-    u.name as validator_name,
+    vt.id as task_id,
+    dp.name as package_name,
+    dp.category,
+    s.name as supplier_name,
+    vt.validation_type,
+    vt.reward_pool_usd,
+    vt.required_validations,
+    COALESCE(submission_count.count, 0) as current_submissions,
+    (vt.required_validations - COALESCE(submission_count.count, 0)) as spots_remaining,
+    vt.expires_at
+FROM validation_tasks vt
+JOIN data_packages dp ON vt.package_id = dp.id
+JOIN suppliers s ON dp.supplier_id = s.id
+LEFT JOIN (
+    SELECT task_id, COUNT(*) as count 
+    FROM validation_submissions 
+    GROUP BY task_id
+) submission_count ON vt.id = submission_count.task_id
+WHERE vt.status = 'open' 
+AND vt.expires_at > NOW()
+ORDER BY vt.created_at DESC
+LIMIT 10;
+
+-- 9. Show validator info for debugging
+SELECT 
+    u.id,
+    u.name,
+    u.email,
+    ur.role_type,
+    ur.api_key,
     vs.total_validations,
     vs.reputation_level,
-    b.balance_usd,
-    ur.api_key
+    b.balance_usd
 FROM users u
 JOIN user_roles ur ON u.id = ur.user_id
 LEFT JOIN validator_stats vs ON u.id = vs.validator_id

@@ -1821,7 +1821,49 @@ async def get_validator_info(x_api_key: Optional[str] = Header(None)):
             "balance": float(stats["balance_usd"] or 0) if stats else 0,
             "payout_threshold": float(stats["payout_threshold_usd"] or 5.00) if stats else 5.00
         }
+# Add this endpoint after the existing /validators/me endpoint
 
+@api.get("/validators/me/history")
+async def get_validator_history(x_api_key: Optional[str] = Header(None)):
+    """Get validator's submission history"""
+    user = await authenticate_unified_user(x_api_key, required_role="validator")
+    
+    async with db_pool.acquire() as conn:
+        submissions = await conn.fetch("""
+            SELECT 
+                vs.id,
+                vs.task_id,
+                vt.validation_type,
+                vs.passed,
+                vs.confidence_score,
+                vs.notes,
+                vs.submitted_at,
+                vs.payout_earned,
+                dp.name as package_name,
+                dp.category
+            FROM validation_submissions vs
+            JOIN validation_tasks vt ON vs.task_id = vt.id
+            JOIN data_packages dp ON vt.package_id = dp.id
+            WHERE vs.validator_id = $1
+            ORDER BY vs.submitted_at DESC
+            LIMIT 50
+        """, user["user_id"])
+        
+        return [
+            {
+                "id": sub["id"],
+                "task_id": sub["task_id"],
+                "package_name": sub["package_name"],
+                "category": sub["category"],
+                "validation_type": sub["validation_type"],
+                "passed": sub["passed"],
+                "confidence_score": float(sub["confidence_score"]),
+                "notes": sub["notes"],
+                "payout_earned": float(sub["payout_earned"] or 0),
+                "submitted_at": sub["submitted_at"].isoformat()
+            }
+            for sub in submissions
+        ]
 # Get package validation status
 @api.get("/packages/{package_id}/validation")
 async def get_package_validation(package_id: int):

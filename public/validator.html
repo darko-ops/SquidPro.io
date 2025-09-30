@@ -60,16 +60,6 @@
             color: var(--text-primary);
         }
 
-        .validator-badge {
-            padding: 0.5rem 1rem;
-            background: rgba(0, 188, 212, 0.1);
-            border: 1px solid var(--accent);
-            border-radius: 20px;
-            font-size: 0.875rem;
-            color: var(--accent);
-            font-weight: 500;
-        }
-
         .debug-panel {
             background: #f8f9fa;
             padding: 1.5rem;
@@ -140,17 +130,6 @@
             font-size: 1.5rem;
             font-weight: 600;
             color: var(--accent);
-        }
-
-        .reputation-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            background: rgba(0, 200, 81, 0.1);
-            border: 1px solid var(--success);
-            border-radius: 12px;
-            font-size: 0.75rem;
-            color: var(--success);
-            font-weight: 500;
         }
 
         .main-content {
@@ -232,16 +211,29 @@
             color: var(--success);
         }
 
-        .validation-type-badge {
-            display: inline-block;
+        .status-badge {
             padding: 0.25rem 0.75rem;
-            background: rgba(0, 188, 212, 0.1);
-            border: 1px solid var(--accent);
             border-radius: 12px;
             font-size: 0.75rem;
-            color: var(--accent);
             font-weight: 500;
-            margin-right: 0.5rem;
+        }
+
+        .status-badge.pass {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status-badge.fail {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        .status-badge.pending {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning);
+            border: 1px solid var(--warning);
         }
 
         .btn {
@@ -256,19 +248,18 @@
             transition: all 0.2s;
         }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             background: #00acc1;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .btn-secondary {
             background: var(--bg-primary);
             color: var(--text-primary);
-            border-color: var(--border-secondary);
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--accent);
-            color: var(--accent);
         }
 
         .loading {
@@ -281,11 +272,6 @@
             text-align: center;
             padding: 3rem 2rem;
             color: var(--text-secondary);
-        }
-
-        .empty-state h3 {
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
         }
 
         .status-message {
@@ -321,6 +307,56 @@
             border-color: var(--accent);
             color: var(--accent);
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: 2rem;
+        }
+
+        .history-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-secondary);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -341,81 +377,106 @@
                 <button class="debug-btn" onclick="debugAuth()">Check Auth</button>
                 <button class="debug-btn" onclick="testAPI()">Test API</button>
                 <button class="debug-btn" onclick="testValidatorEndpoint()">Test /validators/me</button>
-                <button class="debug-btn" onclick="testTasksEndpoint()">Test /validation-tasks</button>
-                <button class="debug-btn" onclick="clearDebug()">Clear Output</button>
+                <button class="debug-btn" onclick="testTasksEndpoint()">Test Tasks</button>
+                <button class="debug-btn" onclick="initializeValidator()">Initialize Validator</button>
+                <button class="debug-btn" onclick="clearDebug()">Clear</button>
             </div>
-            <div id="debug-output">Click buttons above to test...</div>
+            <div id="debug-output">Click buttons to debug...</div>
         </div>
 
         <div class="dashboard-grid">
-            <!-- Stats Panel -->
             <div class="stats-panel">
                 <h3 style="margin-bottom: 1.5rem;">Validator Stats</h3>
-                
                 <div class="stat-item">
                     <div class="stat-label">Total Validations</div>
                     <div class="stat-value" id="total-validations">0</div>
                 </div>
-
                 <div class="stat-item">
                     <div class="stat-label">Consensus Rate</div>
                     <div class="stat-value" id="consensus-rate">0%</div>
                 </div>
-
-                <div class="stat-item">
-                    <div class="stat-label">Avg Confidence</div>
-                    <div class="stat-value" id="avg-confidence">0.00</div>
-                </div>
-
                 <div class="stat-item">
                     <div class="stat-label">Total Earned</div>
                     <div class="stat-value" id="total-earned">$0.00</div>
                 </div>
-
                 <div class="stat-item">
                     <div class="stat-label">Current Balance</div>
                     <div class="stat-value" id="current-balance">$0.00</div>
                 </div>
-
-                <div class="stat-item">
-                    <div class="stat-label">Reputation</div>
-                    <span class="reputation-badge" id="reputation-level">Novice Validator</span>
-                </div>
             </div>
 
-            <!-- Main Content -->
             <div class="main-content">
                 <div class="tabs">
                     <button class="tab active" onclick="switchTab('tasks')">Available Tasks</button>
                     <button class="tab" onclick="switchTab('history')">My History</button>
                 </div>
 
-                <!-- Available Tasks Tab -->
                 <div class="tab-content active" id="tasks-tab">
                     <div id="tasks-container">
                         <div class="loading">Loading validation tasks...</div>
                     </div>
                 </div>
 
-                <!-- History Tab -->
                 <div class="tab-content" id="history-tab">
                     <div id="history-container">
-                        <div class="empty-state">
-                            <h3>No validation history yet</h3>
-                            <p>Complete validation tasks to see your history here</p>
-                        </div>
+                        <div class="loading">Loading history...</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Validation Modal -->
+    <div id="validation-modal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem;">
+                <h3>Submit Validation</h3>
+                <button onclick="closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            
+            <form id="validation-form">
+                <input type="hidden" id="task-id">
+                
+                <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem;">
+                    <div>Package: <strong id="modal-package-name"></strong></div>
+                    <div>Type: <strong id="modal-validation-type"></strong></div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Result</label>
+                    <select id="validation-result" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-secondary); border-radius: 6px;">
+                        <option value="">Select result</option>
+                        <option value="pass">✓ Pass</option>
+                        <option value="fail">✗ Fail</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Confidence (0-100%)</label>
+                    <input type="range" id="confidence-score" min="0" max="100" value="80" style="width: 100%;">
+                    <div style="text-align: center; color: var(--accent); font-weight: 600;" id="confidence-display">80%</div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Notes</label>
+                    <textarea id="validation-notes" required style="width: 100%; min-height: 100px; padding: 0.75rem; border: 1px solid var(--border-secondary); border-radius: 6px;" placeholder="Describe your validation findings..."></textarea>
+                </div>
+
+                <div id="modal-status"></div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn" id="submit-btn">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         const API_BASE = 'http://localhost:8100';
         let currentUser = null;
-        let validatorStats = null;
+        let mySubmissions = [];
 
-        // Debug functions
         function debugLog(message) {
             const output = document.getElementById('debug-output');
             const timestamp = new Date().toLocaleTimeString();
@@ -424,7 +485,19 @@
         }
 
         function clearDebug() {
-            document.getElementById('debug-output').textContent = 'Output cleared. Click buttons above to test...';
+            document.getElementById('debug-output').textContent = 'Output cleared.';
+        }
+
+        function getCurrentUser() {
+            const userData = localStorage.getItem('squidpro_user');
+            if (userData) {
+                try {
+                    return JSON.parse(userData);
+                } catch (e) {
+                    return null;
+                }
+            }
+            return null;
         }
 
         function debugAuth() {
@@ -432,27 +505,24 @@
             currentUser = getCurrentUser();
             
             if (!currentUser) {
-                debugLog('❌ No user found in localStorage');
-                debugLog('Session Token: ' + localStorage.getItem('squidpro_session'));
-                debugLog('User Data: ' + localStorage.getItem('squidpro_user'));
+                debugLog('❌ No user found');
                 return;
             }
             
-            debugLog('✅ User found: ' + currentUser.name);
-            debugLog('Email: ' + currentUser.email);
+            debugLog('✅ User: ' + currentUser.name);
             debugLog('Roles: ' + JSON.stringify(currentUser.roles));
             debugLog('API Key: ' + currentUser.api_key.substring(0, 10) + '...');
             debugLog('Has validator role: ' + currentUser.roles.includes('validator'));
         }
 
         async function testAPI() {
-            debugLog('=== API CONNECTION TEST ===');
+            debugLog('=== API TEST ===');
             try {
                 const response = await fetch(`${API_BASE}/health`);
                 const data = await response.json();
                 debugLog('✅ API responding: ' + JSON.stringify(data));
             } catch (error) {
-                debugLog('❌ API connection failed: ' + error.message);
+                debugLog('❌ API error: ' + error.message);
             }
         }
 
@@ -464,32 +534,18 @@
                 return;
             }
             
-            debugLog('Making request with API key: ' + currentUser.api_key.substring(0, 10) + '...');
-            
             try {
                 const response = await fetch(`${API_BASE}/validators/me`, {
-                    headers: { 
-                        'X-API-Key': currentUser.api_key,
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'X-API-Key': currentUser.api_key }
                 });
                 
-                debugLog('Response status: ' + response.status);
-                
-                const text = await response.text();
+                debugLog('Status: ' + response.status);
+                const data = await response.json();
                 
                 if (response.ok) {
-                    try {
-                        const data = JSON.parse(text);
-                        debugLog('✅ Endpoint working!');
-                        debugLog('Validator data:\n' + JSON.stringify(data, null, 2));
-                    } catch (e) {
-                        debugLog('⚠️ Response OK but invalid JSON');
-                        debugLog('Raw: ' + text);
-                    }
+                    debugLog('✅ Endpoint working!\n' + JSON.stringify(data, null, 2));
                 } else {
-                    debugLog('❌ Endpoint returned error');
-                    debugLog('Response: ' + text);
+                    debugLog('❌ Error: ' + JSON.stringify(data));
                 }
             } catch (error) {
                 debugLog('❌ Request failed: ' + error.message);
@@ -506,48 +562,42 @@
             
             try {
                 const response = await fetch(`${API_BASE}/validation-tasks`, {
-                    headers: { 
-                        'X-API-Key': currentUser.api_key,
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'X-API-Key': currentUser.api_key }
                 });
                 
-                debugLog('Response status: ' + response.status);
-                
-                const text = await response.text();
+                const data = await response.json();
                 
                 if (response.ok) {
-                    try {
-                        const data = JSON.parse(text);
-                        debugLog('✅ Tasks endpoint working!');
-                        debugLog(`Found ${data.length} tasks`);
-                        if (data.length > 0) {
-                            debugLog('First task:\n' + JSON.stringify(data[0], null, 2));
-                        }
-                    } catch (e) {
-                        debugLog('⚠️ Response OK but invalid JSON');
-                        debugLog('Raw: ' + text);
+                    debugLog(`✅ Found ${data.length} tasks`);
+                    if (data.length > 0) {
+                        debugLog('First task:\n' + JSON.stringify(data[0], null, 2));
                     }
                 } else {
-                    debugLog('❌ Tasks endpoint error');
-                    debugLog('Response: ' + text);
+                    debugLog('❌ Error: ' + JSON.stringify(data));
                 }
             } catch (error) {
-                debugLog('❌ Request failed: ' + error.message);
+                debugLog('❌ Failed: ' + error.message);
             }
         }
 
-        // Main functions
-        function getCurrentUser() {
-            const userData = localStorage.getItem('squidpro_user');
-            if (userData) {
-                try {
-                    return JSON.parse(userData);
-                } catch (e) {
-                    return null;
-                }
+        async function initializeValidator() {
+            debugLog('=== INITIALIZING VALIDATOR ===');
+            
+            if (!currentUser) {
+                debugLog('❌ Please sign in first');
+                return;
             }
-            return null;
+            
+            if (!currentUser.roles.includes('validator')) {
+                debugLog('❌ User does not have validator role. Please register with validator role at /auth.html');
+                return;
+            }
+            
+            debugLog('Running initialization checks...');
+            await testAPI();
+            await testValidatorEndpoint();
+            await testTasksEndpoint();
+            debugLog('=== INITIALIZATION COMPLETE ===');
         }
 
         function switchTab(tabName) {
@@ -556,63 +606,50 @@
             
             event.target.classList.add('active');
             document.getElementById(`${tabName}-tab`).classList.add('active');
+
+            if (tabName === 'history') {
+                loadValidationHistory();
+            }
         }
 
         async function loadValidatorStats() {
             try {
-                debugLog('Loading validator stats...');
                 const response = await fetch(`${API_BASE}/validators/me`, {
                     headers: { 'X-API-Key': currentUser.api_key }
                 });
 
                 if (response.ok) {
-                    validatorStats = await response.json();
-                    debugLog('✅ Stats loaded successfully');
-                    updateStatsDisplay();
-                } else {
-                    const error = await response.text();
-                    debugLog('❌ Failed to load stats: ' + error);
+                    const stats = await response.json();
+                    document.getElementById('total-validations').textContent = stats.stats?.total_validations || 0;
+                    document.getElementById('consensus-rate').textContent = `${((stats.stats?.consensus_rate || 0) * 100).toFixed(0)}%`;
+                    document.getElementById('total-earned').textContent = `$${(stats.stats?.total_earned || 0).toFixed(2)}`;
+                    document.getElementById('current-balance').textContent = `$${(stats.balance || 0).toFixed(2)}`;
                 }
             } catch (error) {
-                debugLog('❌ Stats loading error: ' + error.message);
-                console.error('Failed to load validator stats:', error);
+                console.error('Failed to load stats:', error);
             }
-        }
-
-        function updateStatsDisplay() {
-            if (!validatorStats) return;
-
-            document.getElementById('total-validations').textContent = validatorStats.stats.total_validations || 0;
-            document.getElementById('consensus-rate').textContent = `${((validatorStats.stats.consensus_rate || 0) * 100).toFixed(0)}%`;
-            document.getElementById('avg-confidence').textContent = (validatorStats.stats.avg_confidence || 0).toFixed(2);
-            document.getElementById('total-earned').textContent = `$${(validatorStats.stats.total_earned || 0).toFixed(2)}`;
-            document.getElementById('current-balance').textContent = `$${(validatorStats.balance || 0).toFixed(2)}`;
-            document.getElementById('reputation-level').textContent = (validatorStats.reputation_level || 'novice_validator').replace(/_/g, ' ');
         }
 
         async function loadAvailableTasks() {
             const container = document.getElementById('tasks-container');
-            container.innerHTML = '<div class="loading">Loading validation tasks...</div>';
-
+            
             try {
-                debugLog('Loading validation tasks...');
                 const response = await fetch(`${API_BASE}/validation-tasks`, {
                     headers: { 'X-API-Key': currentUser.api_key }
                 });
 
                 if (response.ok) {
                     const tasks = await response.json();
-                    debugLog(`✅ Loaded ${tasks.length} tasks`);
-                    displayTasks(tasks);
+                    // Store submitted task IDs locally
+                    const submittedTaskIds = mySubmissions.map(s => s.task_id);
+                    // Filter out tasks already submitted
+                    const availableTasks = tasks.filter(task => !submittedTaskIds.includes(task.task_id));
+                    displayTasks(availableTasks);
                 } else {
-                    const error = await response.text();
-                    debugLog('❌ Failed to load tasks: ' + error);
-                    container.innerHTML = '<div class="empty-state"><h3>Failed to load tasks</h3><p>Please try again later</p></div>';
+                    container.innerHTML = '<div class="empty-state"><h3>Failed to load tasks</h3></div>';
                 }
             } catch (error) {
-                debugLog('❌ Tasks loading error: ' + error.message);
-                console.error('Failed to load tasks:', error);
-                container.innerHTML = '<div class="empty-state"><h3>Connection error</h3><p>Could not connect to API</p></div>';
+                container.innerHTML = '<div class="empty-state"><h3>Connection error</h3></div>';
             }
         }
 
@@ -620,7 +657,7 @@
             const container = document.getElementById('tasks-container');
 
             if (tasks.length === 0) {
-                container.innerHTML = '<div class="empty-state"><h3>No tasks available</h3><p>Check back later for new validation opportunities</p></div>';
+                container.innerHTML = '<div class="empty-state"><h3>No tasks available</h3><p>Check back later or you\'ve completed all available tasks!</p></div>';
                 return;
             }
 
@@ -629,365 +666,203 @@
                     <div class="task-header">
                         <div>
                             <div class="task-title">${task.package_name}</div>
-                            <div class="task-meta">Supplier: ${task.supplier} • Category: ${task.category}</div>
+                            <div class="task-meta">${task.validation_type.replace(/_/g, ' ')} • ${task.spots_remaining} spot(s) remaining</div>
                         </div>
                         <div class="reward-badge">+$${task.reward_pool.toFixed(3)}</div>
                     </div>
-                    
-                    <div style="margin-bottom: 1rem;">
-                        <span class="validation-type-badge">${task.validation_type.replace(/_/g, ' ')}</span>
-                        <span style="font-size: 0.875rem; color: var(--text-secondary);">
-                            ${task.spots_remaining} spot${task.spots_remaining !== 1 ? 's' : ''} remaining
-                        </span>
-                    </div>
-                    
-                    <div style="display: flex; gap: 1rem;">
-                        <button class="btn" onclick="startValidation(${task.task_id}, '${task.package_name}', '${task.validation_type}')">
-                            Start Validation
-                        </button>
-                        <button class="btn btn-secondary" onclick="viewTaskDetails(${task.task_id})">
-                            View Details
-                        </button>
-                    </div>
+                    <button class="btn" onclick="startValidation(${task.task_id}, '${task.package_name}', '${task.validation_type}')">
+                        Start Validation
+                    </button>
                 </div>
             `).join('');
         }
 
-        function viewTaskDetails(taskId) {
-            alert(`Task details view coming soon!\n\nTask ID: ${taskId}`);
+        async function loadValidationHistory() {
+            const container = document.getElementById('history-container');
+            container.innerHTML = '<div class="loading">Loading history...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/validators/me/history`, {
+                    headers: { 'X-API-Key': currentUser.api_key }
+                });
+
+                if (response.ok) {
+                    const history = await response.json();
+                    
+                    if (history.length === 0) {
+                        container.innerHTML = '<div class="empty-state"><h3>No validation history yet</h3><p>Complete validation tasks to see your history here</p></div>';
+                        return;
+                    }
+
+                    // Store in local array and also update submitted task IDs
+                    mySubmissions = history;
+                    
+                    container.innerHTML = history.map(sub => `
+                        <div class="history-item">
+                            <div class="history-header">
+                                <div>
+                                    <div style="font-weight: 600; margin-bottom: 0.25rem;">${sub.package_name}</div>
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">${sub.validation_type.replace(/_/g, ' ')} • ${sub.category}</div>
+                                </div>
+                                <span class="status-badge ${sub.passed ? 'pass' : 'fail'}">
+                                    ${sub.passed ? '✓ Passed' : '✗ Failed'}
+                                </span>
+                            </div>
+                            <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                                Confidence: ${(sub.confidence_score * 100).toFixed(0)}% • Earned: ${sub.payout_earned.toFixed(3)}
+                            </div>
+                            <div style="background: white; padding: 0.75rem; border-radius: 4px; font-size: 0.875rem;">
+                                ${sub.notes}
+                            </div>
+                            <div style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-secondary);">
+                                Submitted: ${new Date(sub.submitted_at).toLocaleString()}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div class="empty-state"><h3>Failed to load history</h3></div>';
+                }
+            } catch (error) {
+                console.error('Failed to load history:', error);
+                container.innerHTML = '<div class="empty-state"><h3>Error loading history</h3></div>';
+            }
         }
 
-        function updateConfidenceDisplay() {
-    const value = document.getElementById('confidence-score').value;
-    document.getElementById('confidence-display').textContent = `${value}%`;
-}
-
-function startValidation(taskId, packageName, validationType) {
-    document.getElementById('task-id').value = taskId;
-    document.getElementById('modal-package-name').textContent = packageName;
-    document.getElementById('modal-validation-type').value = validationType;
-    document.getElementById('modal-type-display').textContent = validationType.replace(/_/g, ' ');
-    
-    // Reset form
-    document.getElementById('validation-form').reset();
-    document.getElementById('confidence-score').value = 80;
-    updateConfidenceDisplay();
-    document.getElementById('modal-status').innerHTML = '';
-    
-    // Show modal
-    const modal = document.getElementById('validation-modal');
-    modal.style.display = 'flex';
-}
-
-function closeValidationModal() {
-    document.getElementById('validation-modal').style.display = 'none';
-    document.getElementById('validation-form').reset();
-}
-
-// Handle form submission
-document.getElementById('validation-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const taskId = document.getElementById('task-id').value;
-    const result = document.getElementById('validation-result').value;
-    const confidence = parseFloat(document.getElementById('confidence-score').value) / 100;
-    const notes = document.getElementById('validation-notes').value;
-    const validationDataText = document.getElementById('validation-data').value;
-    const validationType = document.getElementById('modal-validation-type').value;
-
-    let validationData = {};
-    if (validationDataText.trim()) {
-        try {
-            validationData = JSON.parse(validationDataText);
-        } catch (e) {
-            document.getElementById('modal-status').innerHTML = 
-                '<div class="status-message status-error">Invalid JSON in validation data. Please fix or leave blank.</div>';
-            return;
+        function startValidation(taskId, packageName, validationType) {
+            console.log('Opening validation modal for task:', taskId);
+            
+            // Clear previous form data completely
+            document.getElementById('validation-form').reset();
+            document.getElementById('modal-status').innerHTML = '';
+            
+            // Set new task data
+            document.getElementById('task-id').value = taskId;
+            document.getElementById('modal-package-name').textContent = packageName;
+            document.getElementById('modal-validation-type').textContent = validationType.replace(/_/g, ' ');
+            
+            // Reset confidence display
+            document.getElementById('confidence-score').value = 80;
+            document.getElementById('confidence-display').textContent = '80%';
+            
+            // Show modal
+            document.getElementById('validation-modal').classList.add('show');
+            
+            console.log('Modal opened with task_id:', taskId);
         }
-    }
 
-    const payload = {
-        passed: result === 'pass',
-        confidence_score: confidence,
-        notes: notes,
-        validation_data: validationData
-    };
+        function closeModal() {
+            document.getElementById('validation-modal').classList.remove('show');
+            document.getElementById('validation-form').reset();
+            document.getElementById('modal-status').innerHTML = '';
+            document.getElementById('task-id').value = '';
+        }
 
-    const submitBtn = document.getElementById('submit-validation-btn');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting...';
-
-    try {
-        debugLog(`Submitting validation for task ${taskId}...`);
-        
-        const response = await fetch(`${API_BASE}/validation-tasks/${taskId}/submit`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': currentUser.api_key
-            },
-            body: JSON.stringify(payload)
+        document.getElementById('confidence-score').addEventListener('input', (e) => {
+            document.getElementById('confidence-display').textContent = e.target.value + '%';
         });
 
-        const data = await response.json();
+        document.getElementById('validation-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-        if (response.ok) {
-            debugLog(`✅ Validation submitted successfully!`);
-            document.getElementById('modal-status').innerHTML = 
-                '<div class="status-message status-success">✓ Validation submitted successfully!</div>';
-            
-            setTimeout(() => {
-                closeValidationModal();
-                loadAvailableTasks();
-                loadValidatorStats();
-            }, 2000);
-        } else {
-            debugLog(`❌ Validation submission failed: ${data.detail || 'Unknown error'}`);
-            document.getElementById('modal-status').innerHTML = 
-                `<div class="status-message status-error">Error: ${data.detail || 'Submission failed'}</div>`;
-        }
-    } catch (error) {
-        debugLog(`❌ Network error during validation submission: ${error.message}`);
-        document.getElementById('modal-status').innerHTML = 
-            '<div class="status-message status-error">Network error. Please try again.</div>';
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Validation';
-    }
-});
+            const taskId = parseInt(document.getElementById('task-id').value);
+            console.log('Submitting validation for task_id:', taskId);
 
-// Close modal when clicking outside
-document.getElementById('validation-modal').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) {
-        closeValidationModal();
-    }
-});
-</script>
-        // Initialize
+            if (!taskId) {
+                document.getElementById('modal-status').innerHTML = 
+                    '<div class="status-message status-error">Error: No task ID found. Please close and try again.</div>';
+                return;
+            }
+
+            const payload = {
+                passed: document.getElementById('validation-result').value === 'pass',
+                confidence_score: parseFloat(document.getElementById('confidence-score').value) / 100,
+                notes: document.getElementById('validation-notes').value,
+                validation_data: {}
+            };
+
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            try {
+                const response = await fetch(`${API_BASE}/validation-tasks/${taskId}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': currentUser.api_key
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                console.log('Submission response:', data);
+
+                if (response.ok) {
+                    // Reload history from database to get accurate payout info
+                    try {
+                        const historyResponse = await fetch(`${API_BASE}/validators/me/history`, {
+                            headers: { 'X-API-Key': currentUser.api_key }
+                        });
+                        if (historyResponse.ok) {
+                            mySubmissions = await historyResponse.json();
+                        }
+                    } catch (e) {
+                        console.error('Failed to reload history:', e);
+                    }
+
+                    document.getElementById('modal-status').innerHTML = 
+                        '<div class="status-message status-success">✓ Validation submitted successfully!</div>';
+                    
+                    setTimeout(() => {
+                        closeModal();
+                        loadAvailableTasks();
+                        loadValidatorStats();
+                    }, 2000);
+                } else {
+                    document.getElementById('modal-status').innerHTML = 
+                        `<div class="status-message status-error">Error: ${data.detail || 'Submission failed'}</div>`;
+                }
+            } catch (error) {
+                console.error('Submission error:', error);
+                document.getElementById('modal-status').innerHTML = 
+                    '<div class="status-message status-error">Network error. Please try again.</div>';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit';
+            }
+        });
+
         async function init() {
-            debugLog('=== INITIALIZING VALIDATOR PAGE ===');
-            
             currentUser = getCurrentUser();
             
             if (!currentUser) {
-                debugLog('❌ No user found - redirecting to auth');
                 window.location.href = '/auth.html';
                 return;
             }
-            
-            debugLog('✅ User: ' + currentUser.name);
-            debugLog('Roles: ' + currentUser.roles.join(', '));
 
             if (!currentUser.roles.includes('validator')) {
-                debugLog('❌ User does not have validator role');
-                alert('Validator role required. Please register as a validator at /auth.html');
+                alert('Validator role required');
                 window.location.href = '/profile.html';
                 return;
             }
-            
-            debugLog('✅ Validator role confirmed');
+
+            // Load history first to know which tasks we've submitted to
+            try {
+                const response = await fetch(`${API_BASE}/validators/me/history`, {
+                    headers: { 'X-API-Key': currentUser.api_key }
+                });
+                if (response.ok) {
+                    mySubmissions = await response.json();
+                }
+            } catch (error) {
+                console.error('Failed to preload history:', error);
+            }
 
             await loadValidatorStats();
             await loadAvailableTasks();
-            
-            debugLog('=== INITIALIZATION COMPLETE ===');
         }
 
-        // Start the app
         init();
     </script>
-    <!-- Validation Modal -->
-    <div id="validation-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; overflow-y: auto;">
-        <div style="background: var(--bg-primary); border-radius: 8px; padding: 2rem; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; margin: 2rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h3 style="font-size: 1.5rem; font-weight: 600;">Submit Validation</h3>
-                <button onclick="closeValidationModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
-            </div>
-            
-            <form id="validation-form">
-                <input type="hidden" id="task-id">
-                <input type="hidden" id="modal-validation-type">
-                
-                <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem;">
-                    <div style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Package:</div>
-                    <div style="font-weight: 600;" id="modal-package-name"></div>
-                    <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
-                        Validation Type: <span id="modal-type-display" style="color: var(--accent); font-weight: 500;"></span>
-                    </div>
-                </div>
-
-                <div style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 6px; margin-bottom: 1.5rem;">
-                    <div style="font-weight: 500; margin-bottom: 1rem;">Validation Checklist:</div>
-                    <div style="display: flex; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-primary); border-radius: 4px;">
-                        <input type="checkbox" id="check-1" required style="margin-right: 0.75rem; width: 18px; height: 18px;">
-                        <label for="check-1" style="font-size: 0.875rem;">Downloaded and inspected the dataset</label>
-                    </div>
-                    <div style="display: flex; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; background: var(--bg-primary); border-radius: 4px;">
-                        <input type="checkbox" id="check-2" required style="margin-right: 0.75rem; width: 18px; height: 18px;">
-                        <label for="check-2" style="font-size: 0.875rem;">Completed required validation checks</label>
-                    </div>
-                    <div style="display: flex; align-items: center; padding: 0.75rem; background: var(--bg-primary); border-radius: 4px;">
-                        <input type="checkbox" id="check-3" required style="margin-right: 0.75rem; width: 18px; height: 18px;">
-                        <label for="check-3" style="font-size: 0.875rem;">Documented findings and evidence</label>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Validation Result *</label>
-                    <select id="validation-result" required style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-secondary); border-radius: 6px; font-size: 0.9rem;">
-                        <option value="">Select result</option>
-                        <option value="pass">✓ Pass - Validation successful</option>
-                        <option value="fail">✗ Fail - Issues detected</option>
-                    </select>
-                </div>
-
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Confidence Score *</label>
-                    <input type="range" id="confidence-score" min="0" max="100" value="80" style="width: 100%;" oninput="updateConfidenceDisplay()">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem;">
-                        <span>Low (0%)</span>
-                        <span id="confidence-display" style="font-weight: 600; color: var(--accent);">80%</span>
-                        <span>High (100%)</span>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">Findings & Evidence *</label>
-                    <textarea id="validation-notes" required style="width: 100%; min-height: 120px; padding: 0.75rem; border: 1px solid var(--border-secondary); border-radius: 6px; font-size: 0.9rem; font-family: inherit; resize: vertical;" placeholder="Describe your validation process, what you checked, and what you found..."></textarea>
-                </div>
-
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.5rem;">
-                        Technical Validation Data (JSON - Optional)
-                        <span style="color: var(--text-secondary); font-weight: 400;">- Advanced</span>
-                    </label>
-                    <textarea id="validation-data" style="width: 100%; min-height: 80px; padding: 0.75rem; border: 1px solid var(--border-secondary); border-radius: 6px; font-size: 0.875rem; font-family: monospace; resize: vertical;" placeholder='{"hash": "abc123...", "row_count": 1000, "schema_valid": true}'></textarea>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
-                        Provide detailed validation data as JSON (hashes, counts, etc.)
-                    </div>
-                </div>
-
-                <div id="modal-status"></div>
-
-                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-primary);">
-                    <button type="button" class="btn btn-secondary" onclick="closeValidationModal()">Cancel</button>
-                    <button type="submit" class="btn" id="submit-validation-btn">Submit Validation</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-    // Modal helper functions
-    function updateConfidenceDisplay() {
-        const value = document.getElementById('confidence-score').value;
-        document.getElementById('confidence-display').textContent = `${value}%`;
-    }
-
-    function closeValidationModal() {
-        document.getElementById('validation-modal').style.display = 'none';
-        document.getElementById('validation-form').reset();
-        document.getElementById('modal-status').innerHTML = '';
-    }
-
-    // Update the existing startValidation function
-    window.startValidation = function(taskId, packageName, validationType) {
-        document.getElementById('task-id').value = taskId;
-        document.getElementById('modal-package-name').textContent = packageName;
-        document.getElementById('modal-validation-type').value = validationType;
-        document.getElementById('modal-type-display').textContent = validationType.replace(/_/g, ' ');
-        
-        // Reset form
-        document.getElementById('validation-form').reset();
-        document.getElementById('confidence-score').value = 80;
-        updateConfidenceDisplay();
-        document.getElementById('modal-status').innerHTML = '';
-        
-        // Show modal
-        const modal = document.getElementById('validation-modal');
-        modal.style.display = 'flex';
-    };
-
-    // Form submission handler
-    document.getElementById('validation-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const taskId = document.getElementById('task-id').value;
-        const result = document.getElementById('validation-result').value;
-        const confidence = parseFloat(document.getElementById('confidence-score').value) / 100;
-        const notes = document.getElementById('validation-notes').value;
-        const validationDataText = document.getElementById('validation-data').value;
-
-        let validationData = {};
-        if (validationDataText.trim()) {
-            try {
-                validationData = JSON.parse(validationDataText);
-            } catch (e) {
-                document.getElementById('modal-status').innerHTML = 
-                    '<div class="status-message status-error">Invalid JSON in validation data. Please fix or leave blank.</div>';
-                return;
-            }
-        }
-
-        const payload = {
-            passed: result === 'pass',
-            confidence_score: confidence,
-            notes: notes,
-            validation_data: validationData
-        };
-
-        const submitBtn = document.getElementById('submit-validation-btn');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting...';
-
-        try {
-            debugLog(`Submitting validation for task ${taskId}...`);
-            
-            const response = await fetch(`${API_BASE}/validation-tasks/${taskId}/submit`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-Key': currentUser.api_key
-                },
-                body: JSON.stringify(payload)
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                debugLog(`✅ Validation submitted successfully!`);
-                document.getElementById('modal-status').innerHTML = 
-                    '<div class="status-message status-success">✓ Validation submitted successfully!</div>';
-                
-                setTimeout(() => {
-                    closeValidationModal();
-                    loadAvailableTasks();
-                    loadValidatorStats();
-                }, 2000);
-            } else {
-                debugLog(`❌ Validation submission failed: ${data.detail || 'Unknown error'}`);
-                document.getElementById('modal-status').innerHTML = 
-                    `<div class="status-message status-error">Error: ${data.detail || 'Submission failed'}</div>`;
-            }
-        } catch (error) {
-            debugLog(`❌ Network error: ${error.message}`);
-            document.getElementById('modal-status').innerHTML = 
-                '<div class="status-message status-error">Network error. Please try again.</div>';
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Validation';
-        }
-    });
-
-    // Close modal when clicking outside
-    document.getElementById('validation-modal').addEventListener('click', (e) => {
-        if (e.target === e.currentTarget) {
-            closeValidationModal();
-        }
-    });
-    </script>
-
-</body>  <!-- MODAL CODE ENDS HERE, RIGHT BEFORE THIS -->
-</html>
 </body>
 </html>
