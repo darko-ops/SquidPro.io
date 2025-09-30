@@ -239,6 +239,7 @@
             margin-bottom: 1rem;
             font-size: 0.875rem;
             display: none;
+            white-space: pre-wrap;
         }
 
         .message.error {
@@ -483,8 +484,8 @@
                         <div class="role-option" onclick="toggleRole('reviewer')">
                             <input type="checkbox" id="role-reviewer" class="role-checkbox">
                             <div class="role-info">
-                                <h4>Quality Reviewer</h4>
-                                <p>Review data quality and earn rewards</p>
+                                <h4>Quality Reviewer / Validator</h4>
+                                <p>Review data quality and validate packages to earn rewards</p>
                             </div>
                         </div>
                     </div>
@@ -690,10 +691,10 @@
                 roles: []
             };
 
-            // Collect selected roles
+            // KEY FIX: Send 'validator' role instead of 'reviewer'
             if (document.getElementById('role-buyer').checked) formData.roles.push('buyer');
             if (document.getElementById('role-supplier').checked) formData.roles.push('supplier');
-            if (document.getElementById('role-reviewer').checked) formData.roles.push('reviewer');
+            if (document.getElementById('role-reviewer').checked) formData.roles.push('validator');
 
             // Basic validation
             if (!formData.username || !formData.email || !formData.password || !formData.name) {
@@ -714,6 +715,8 @@
             btn.innerHTML = '<span class="loading"></span>Creating account...';
             clearMessage();
 
+            console.log('Registration attempt:', { ...formData, password: '***', repeat_password: '***' });
+
             try {
                 const response = await fetch(`${API_BASE}/auth/register`, {
                     method: 'POST',
@@ -721,9 +724,17 @@
                     body: JSON.stringify(formData)
                 });
 
-                const data = await response.json();
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    const text = await response.text();
+                    console.error('Failed to parse response:', text);
+                    throw new Error(`Server returned invalid response: ${text.substring(0, 100)}`);
+                }
 
                 if (response.ok) {
+                    console.log('Registration successful:', data);
                     showMessage('Account created successfully! Signing you in...', 'success');
                     
                     setTimeout(async () => {
@@ -745,20 +756,48 @@
                                 
                                 window.location.href = '/catalog.html';
                             } else {
+                                console.error('Auto-login failed:', loginData);
                                 showMessage('Account created but auto-login failed. Please sign in manually.', 'warning');
                                 switchTab('signin');
                             }
                         } catch (error) {
+                            console.error('Auto-login error:', error);
                             showMessage('Account created but auto-login failed. Please sign in manually.', 'warning');
                             switchTab('signin');
                         }
                     }, 1500);
                 } else {
-                    showMessage(data.detail || 'Registration failed. Please try again.', 'error');
+                    console.error('Registration failed:', data);
+                    
+                    // KEY FIX: Better error handling to avoid "[object Object]"
+                    let errorMessage = 'Registration failed. Please try again.';
+                    
+                    if (typeof data === 'string') {
+                        errorMessage = data;
+                    } else if (data.detail) {
+                        if (typeof data.detail === 'string') {
+                            errorMessage = data.detail;
+                        } else if (Array.isArray(data.detail)) {
+                            // Validation errors from FastAPI
+                            errorMessage = data.detail.map(err => {
+                                const field = err.loc ? err.loc.join('.') : 'Unknown field';
+                                return `${field}: ${err.msg}`;
+                            }).join('\n');
+                        } else if (typeof data.detail === 'object') {
+                            errorMessage = JSON.stringify(data.detail, null, 2);
+                        }
+                    } else if (data.message) {
+                        errorMessage = data.message;
+                    } else if (data.error) {
+                        errorMessage = data.error;
+                    }
+                    
+                    console.error('Error details:', errorMessage);
+                    showMessage(errorMessage, 'error');
                 }
             } catch (error) {
-                showMessage('Network error. Please try again.', 'error');
-                console.error('Registration error:', error);
+                console.error('Network error:', error);
+                showMessage(`Network error: ${error.message}`, 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = 'Create Account';

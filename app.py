@@ -1211,6 +1211,11 @@ async def serve_catalog_alt():
     """Alternative catalog route"""
     return FileResponse("public/catalog.html")
 
+@api.get("/validator.html")
+async def serve_validator():
+    """Serve the validator page"""
+    return FileResponse("public/validator.html")
+
 @api.get("/upload.html")
 async def serve_upload():
     """Serve the upload page"""
@@ -1647,11 +1652,12 @@ async def get_available_validation_tasks(
     
     async with db_pool.acquire() as conn:
         query = """
-            SELECT vt.*, dp.name as package_name, dp.category, s.name as supplier_name,
+            SELECT vt.*, dp.name as package_name, dp.category, 
+                   u.name as supplier_name,
                    (vt.required_validations - COALESCE(submitted_count.count, 0)) as spots_remaining
             FROM validation_tasks vt
             JOIN data_packages dp ON vt.package_id = dp.id
-            JOIN suppliers s ON dp.supplier_id = s.id
+            JOIN users u ON dp.supplier_id = u.id
             LEFT JOIN (
                 SELECT task_id, COUNT(*) as count 
                 FROM validation_submissions 
@@ -1755,12 +1761,13 @@ async def submit_validation(
         }
 
 # Get validator profile
-@api.get("/validators/me")
+@api.get("/validators/me")  
 async def get_validator_info(x_api_key: Optional[str] = Header(None)):
     """Get validator information - uses unified usr_ auth"""
     user = await authenticate_unified_user(x_api_key, required_role="validator")
     
     async with db_pool.acquire() as conn:
+        # Get validator stats
         stats = await conn.fetchrow("""
             SELECT vs.*, b.balance_usd, b.payout_threshold_usd
             FROM validator_stats vs
@@ -1769,37 +1776,41 @@ async def get_validator_info(x_api_key: Optional[str] = Header(None)):
         """, user["user_id"])
         
         if not stats:
-            # Create initial stats
+            # Create initial stats if they don't exist
             await conn.execute("""
-                INSERT INTO validator_stats (validator_id) VALUES ($1)
+                INSERT INTO validator_stats (validator_id) 
+                VALUES ($1)
+                ON CONFLICT (validator_id) DO NOTHING
             """, user["user_id"])
             
-            return {
-                "id": user["user_id"],
-                "name": user["name"],
-                "reputation_level": "novice_validator",
-                "stats": {
-                    "total_validations": 0,
-                    "consensus_rate": 0,
-                    "avg_confidence": 0,
-                    "total_earned": 0
-                },
-                "balance": 0,
-                "payout_threshold": 5.00
-            }
+            # Create balance entry
+            await conn.execute("""
+                INSERT INTO balances (user_type, user_id, payout_threshold_usd)
+                VALUES ('validator', $1, 5.00)
+                ON CONFLICT (user_type, user_id) DO NOTHING
+            """, str(user["user_id"]))
+            
+            # Fetch again
+            stats = await conn.fetchrow("""
+                SELECT vs.*, b.balance_usd, b.payout_threshold_usd
+                FROM validator_stats vs
+                LEFT JOIN balances b ON vs.validator_id::text = b.user_id AND b.user_type = 'validator'
+                WHERE vs.validator_id = $1
+            """, user["user_id"])
         
         return {
             "id": user["user_id"],
             "name": user["name"],
-            "reputation_level": stats["reputation_level"],
+            "email": user["email"],
+            "reputation_level": stats["reputation_level"] if stats else "novice_validator",
             "stats": {
-                "total_validations": stats["total_validations"] or 0,
-                "consensus_rate": float(stats["consensus_rate"] or 0),
-                "avg_confidence": float(stats["avg_confidence"] or 0),
-                "total_earned": float(stats["total_earned"] or 0)
+                "total_validations": stats["total_validations"] if stats else 0,
+                "consensus_rate": float(stats["consensus_rate"] or 0) if stats else 0,
+                "avg_confidence": float(stats["avg_confidence"] or 0) if stats else 0,
+                "total_earned": float(stats["total_earned"] or 0) if stats else 0
             },
-            "balance": float(stats["balance_usd"] or 0),
-            "payout_threshold": float(stats["payout_threshold_usd"] or 5.00)
+            "balance": float(stats["balance_usd"] or 0) if stats else 0,
+            "payout_threshold": float(stats["payout_threshold_usd"] or 5.00) if stats else 5.00
         }
 
 # Get package validation status

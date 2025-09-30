@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS data_packages (
 -- Balance tracking
 CREATE TABLE IF NOT EXISTS balances (
     id SERIAL PRIMARY KEY,
-    user_type VARCHAR(20) CHECK (user_type IN ('supplier', 'reviewer', 'squidpro')),
+    user_type VARCHAR(20) CHECK (user_type IN ('supplier', 'validator', 'squidpro', 'buyer')),
     user_id VARCHAR(255),
     balance_usd DECIMAL(10,6) DEFAULT 0,
     pending_payout_usd DECIMAL(10,6) DEFAULT 0,
@@ -287,12 +287,12 @@ CREATE TABLE IF NOT EXISTS package_validation_scores (
 -- Validator statistics (similar to reviewer_stats but for validators)
 CREATE TABLE IF NOT EXISTS validator_stats (
     id SERIAL PRIMARY KEY,
-    validator_id INTEGER UNIQUE NOT NULL,  -- References users.id (unified auth)
+    validator_id INTEGER UNIQUE NOT NULL,
     total_validations INTEGER DEFAULT 0,
     consensus_rate DECIMAL(3,2) DEFAULT 0,
     avg_confidence DECIMAL(3,2) DEFAULT 0,
     total_earned DECIMAL(10,6) DEFAULT 0,
-    specializations TEXT[],  -- e.g. ['content_hash', 'compliance']
+    specializations TEXT[],
     reputation_level VARCHAR(30) DEFAULT 'novice_validator',
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -382,7 +382,7 @@ ON CONFLICT DO NOTHING;
 
 -- Initialize validator stats for users with validator role
 INSERT INTO validator_stats (validator_id)
-SELECT user_id 
+SELECT DISTINCT user_id 
 FROM user_roles 
 WHERE role_type = 'validator' AND is_active = TRUE
 ON CONFLICT (validator_id) DO NOTHING;
@@ -393,3 +393,65 @@ SELECT 'validator', user_id::text, 5.00
 FROM user_roles
 WHERE role_type = 'validator' AND is_active = TRUE
 ON CONFLICT (user_type, user_id) DO NOTHING;
+
+
+INSERT INTO validation_tasks (package_id, validation_type, required_validations, reward_pool_usd, reference_data)
+SELECT 
+    dp.id,
+    'content_hash',
+    3,
+    0.10,
+    jsonb_build_object(
+        'package_id', dp.id,
+        'package_name', dp.name,
+        'category', dp.category,
+        'endpoint_url', dp.endpoint_url
+    )
+FROM data_packages dp
+WHERE dp.package_type = 'upload'
+AND NOT EXISTS (
+    SELECT 1 FROM validation_tasks vt 
+    WHERE vt.package_id = dp.id 
+    AND vt.validation_type = 'content_hash'
+    AND vt.status = 'open'
+)
+LIMIT 5;
+
+
+-- 5. Verify setup
+SELECT 
+    'Validators' as entity,
+    COUNT(*) as count
+FROM validator_stats
+UNION ALL
+SELECT 
+    'Validator Balances',
+    COUNT(*)
+FROM balances
+WHERE user_type = 'validator'
+UNION ALL
+SELECT 
+    'Open Validation Tasks',
+    COUNT(*)
+FROM validation_tasks
+WHERE status = 'open' AND expires_at > NOW()
+UNION ALL
+SELECT 
+    'Users with Validator Role',
+    COUNT(DISTINCT user_id)
+FROM user_roles
+WHERE role_type = 'validator' AND is_active = TRUE;
+
+-- 6. Show sample data
+SELECT 
+    u.name as validator_name,
+    vs.total_validations,
+    vs.reputation_level,
+    b.balance_usd,
+    ur.api_key
+FROM users u
+JOIN user_roles ur ON u.id = ur.user_id
+LEFT JOIN validator_stats vs ON u.id = vs.validator_id
+LEFT JOIN balances b ON u.id::text = b.user_id AND b.user_type = 'validator'
+WHERE ur.role_type = 'validator' AND ur.is_active = TRUE
+LIMIT 10;

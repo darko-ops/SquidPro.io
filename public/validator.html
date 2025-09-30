@@ -70,6 +70,48 @@
             font-weight: 500;
         }
 
+        .debug-panel {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border-left: 4px solid #007bff;
+        }
+
+        .debug-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .debug-btn {
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 1px solid var(--border-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .debug-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        #debug-output {
+            background: white;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-secondary);
+        }
+
         .dashboard-grid {
             display: grid;
             grid-template-columns: 300px 1fr;
@@ -229,58 +271,21 @@
             color: var(--accent);
         }
 
-        .validation-form {
-            background: var(--bg-primary);
-            border: 1px solid var(--border-primary);
-            border-radius: 8px;
+        .loading {
+            text-align: center;
             padding: 2rem;
-            margin-top: 1rem;
+            color: var(--text-secondary);
         }
 
-        .form-group {
-            margin-bottom: 1.5rem;
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-secondary);
         }
 
-        .form-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
+        .empty-state h3 {
             margin-bottom: 0.5rem;
-        }
-
-        .form-input, .form-select, .form-textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border-secondary);
-            border-radius: 6px;
-            font-size: 0.9rem;
-        }
-
-        .form-textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .validation-checklist {
-            background: var(--bg-secondary);
-            padding: 1.5rem;
-            border-radius: 6px;
-            margin-bottom: 1.5rem;
-        }
-
-        .checklist-item {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            background: var(--bg-primary);
-            border-radius: 4px;
-        }
-
-        .checklist-item input[type="checkbox"] {
-            margin-right: 0.75rem;
-            width: 18px;
-            height: 18px;
+            color: var(--text-primary);
         }
 
         .status-message {
@@ -301,100 +306,20 @@
             color: var(--error);
         }
 
-        .history-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .history-table th,
-        .history-table td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border-primary);
-        }
-
-        .history-table th {
-            background: var(--bg-secondary);
-            font-weight: 500;
-            font-size: 0.875rem;
+        .back-link {
+            display: inline-block;
+            padding: 0.5rem 1rem;
             color: var(--text-secondary);
-        }
-
-        .passed-badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .passed-badge.pass {
-            background: rgba(0, 200, 81, 0.1);
-            color: var(--success);
-        }
-
-        .passed-badge.fail {
-            background: rgba(255, 82, 82, 0.1);
-            color: var(--error);
-        }
-
-        .guide-section {
-            background: var(--bg-secondary);
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-        }
-
-        .guide-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-
-        .guide-step {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .step-number {
-            width: 30px;
-            height: 30px;
-            background: var(--accent);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            flex-shrink: 0;
-        }
-
-        .code-block {
-            background: #1f2937;
-            color: #e5e7eb;
-            padding: 1rem;
+            text-decoration: none;
+            border: 1px solid var(--border-secondary);
             border-radius: 6px;
-            font-family: monospace;
             font-size: 0.875rem;
-            overflow-x: auto;
-            margin: 0.5rem 0;
+            transition: all 0.2s;
         }
 
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-secondary);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem 2rem;
-            color: var(--text-secondary);
-        }
-
-        .empty-state h3 {
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
+        .back-link:hover {
+            border-color: var(--accent);
+            color: var(--accent);
         }
     </style>
 </head>
@@ -402,11 +327,26 @@
     <div class="header">
         <div class="header-content">
             <div class="logo">SquidPro Validator</div>
-            <div class="validator-badge">Infrastructure Trust Keeper</div>
+            <div>
+                <a href="/catalog.html" class="back-link">← Back to Catalog</a>
+            </div>
         </div>
     </div>
 
     <div class="container">
+        <!-- DEBUG PANEL -->
+        <div class="debug-panel">
+            <h3 style="margin-bottom: 1rem; color: #007bff;">Debug Panel</h3>
+            <div class="debug-actions">
+                <button class="debug-btn" onclick="debugAuth()">Check Auth</button>
+                <button class="debug-btn" onclick="testAPI()">Test API</button>
+                <button class="debug-btn" onclick="testValidatorEndpoint()">Test /validators/me</button>
+                <button class="debug-btn" onclick="testTasksEndpoint()">Test /validation-tasks</button>
+                <button class="debug-btn" onclick="clearDebug()">Clear Output</button>
+            </div>
+            <div id="debug-output">Click buttons above to test...</div>
+        </div>
+
         <div class="dashboard-grid">
             <!-- Stats Panel -->
             <div class="stats-panel">
@@ -447,7 +387,6 @@
             <div class="main-content">
                 <div class="tabs">
                     <button class="tab active" onclick="switchTab('tasks')">Available Tasks</button>
-                    <button class="tab" onclick="switchTab('guide')">Validation Guide</button>
                     <button class="tab" onclick="switchTab('history')">My History</button>
                 </div>
 
@@ -458,183 +397,16 @@
                     </div>
                 </div>
 
-                <!-- Validation Guide Tab -->
-                <div class="tab-content" id="guide-tab">
-                    <h2 style="margin-bottom: 1.5rem;">How to Validate Data Packages</h2>
-
-                    <div class="guide-section">
-                        <div class="guide-title">Content Hash Validation</div>
-                        <p style="margin-bottom: 1rem;">Cryptographically verify data integrity:</p>
-                        
-                        <div class="guide-step">
-                            <div class="step-number">1</div>
-                            <div>
-                                <strong>Download Dataset</strong>
-                                <p>Fetch the dataset from the package endpoint</p>
-                            </div>
-                        </div>
-
-                        <div class="guide-step">
-                            <div class="step-number">2</div>
-                            <div>
-                                <strong>Compute SHA-256 Hash</strong>
-                                <div class="code-block">
-import hashlib
-import pandas as pd
-
-df = pd.read_csv('dataset.csv')
-data_bytes = df.to_csv(index=False).encode('utf-8')
-file_hash = hashlib.sha256(data_bytes).hexdigest()
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="guide-step">
-                            <div class="step-number">3</div>
-                            <div>
-                                <strong>Compare with Stored Hash</strong>
-                                <p>Verify the computed hash matches the reference hash</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="guide-section">
-                        <div class="guide-title">Schema Validation</div>
-                        <p style="margin-bottom: 1rem;">Verify data conforms to declared schema:</p>
-                        
-                        <div class="guide-step">
-                            <div class="step-number">1</div>
-                            <div>
-                                <strong>Check Column Types</strong>
-                                <p>Ensure all columns match declared data types</p>
-                            </div>
-                        </div>
-
-                        <div class="guide-step">
-                            <div class="step-number">2</div>
-                            <div>
-                                <strong>Validate Required Fields</strong>
-                                <p>Check for missing required columns and null values</p>
-                            </div>
-                        </div>
-
-                        <div class="guide-step">
-                            <div class="step-number">3</div>
-                            <div>
-                                <strong>Check Data Consistency</strong>
-                                <p>Verify data ranges, formats, and relationships</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="guide-section">
-                        <div class="guide-title">Compliance Validation</div>
-                        <p style="margin-bottom: 1rem;">Verify data meets compliance standards:</p>
-                        
-                        <div class="guide-step">
-                            <div class="step-number">1</div>
-                            <div>
-                                <strong>PII Detection</strong>
-                                <p>Scan for personally identifiable information</p>
-                            </div>
-                        </div>
-
-                        <div class="guide-step">
-                            <div class="step-number">2</div>
-                            <div>
-                                <strong>Check Redaction</strong>
-                                <p>Verify sensitive data is properly masked</p>
-                            </div>
-                        </div>
-
-                        <div class="guide-step">
-                            <div class="step-number">3</div>
-                            <div>
-                                <strong>Validate ToS Compliance</strong>
-                                <p>Confirm data collection follows terms of service</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- History Tab -->
                 <div class="tab-content" id="history-tab">
                     <div id="history-container">
-                        <div class="loading">Loading validation history...</div>
+                        <div class="empty-state">
+                            <h3>No validation history yet</h3>
+                            <p>Complete validation tasks to see your history here</p>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Validation Modal -->
-    <div id="validation-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: var(--bg-primary); border-radius: 8px; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
-            <h3 style="margin-bottom: 1.5rem;">Submit Validation</h3>
-            
-            <form id="validation-form">
-                <input type="hidden" id="task-id">
-                
-                <div class="form-group">
-                    <div class="form-label">Package: <span id="modal-package-name"></span></div>
-                    <div class="form-label">Type: <span id="modal-validation-type"></span></div>
-                </div>
-
-                <div class="validation-checklist">
-                    <div class="form-label">Validation Checklist:</div>
-                    <div class="checklist-item">
-                        <input type="checkbox" id="check-1" required>
-                        <label for="check-1">Downloaded and inspected dataset</label>
-                    </div>
-                    <div class="checklist-item">
-                        <input type="checkbox" id="check-2" required>
-                        <label for="check-2">Completed required validation checks</label>
-                    </div>
-                    <div class="checklist-item">
-                        <input type="checkbox" id="check-3" required>
-                        <label for="check-3">Documented findings and evidence</label>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="validation-result">Result *</label>
-                    <select id="validation-result" class="form-select" required>
-                        <option value="">Select result</option>
-                        <option value="pass">Pass - Validation successful</option>
-                        <option value="fail">Fail - Issues detected</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="confidence-score">Confidence Score *</label>
-                    <input type="range" id="confidence-score" min="0" max="100" value="80" style="width: 100%;">
-                    <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--text-secondary);">
-                        <span>Low (0%)</span>
-                        <span id="confidence-display">80%</span>
-                        <span>High (100%)</span>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="validation-notes">Findings & Evidence *</label>
-                    <textarea id="validation-notes" class="form-textarea" required placeholder="Describe your validation process and findings..."></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" for="validation-data">Validation Data (JSON)</label>
-                    <textarea id="validation-data" class="form-textarea" placeholder='{"hash": "abc123...", "schema_valid": true}'></textarea>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">
-                        Optional: Provide detailed validation data as JSON
-                    </div>
-                </div>
-
-                <div id="modal-status"></div>
-
-                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
-                    <button type="button" class="btn btn-secondary" onclick="closeValidationModal()">Cancel</button>
-                    <button type="submit" class="btn">Submit Validation</button>
-                </div>
-            </form>
         </div>
     </div>
 
@@ -643,25 +415,129 @@ file_hash = hashlib.sha256(data_bytes).hexdigest()
         let currentUser = null;
         let validatorStats = null;
 
-        // Initialize
-        async function init() {
+        // Debug functions
+        function debugLog(message) {
+            const output = document.getElementById('debug-output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent = `[${timestamp}] ${message}\n\n` + output.textContent;
+            console.log(message);
+        }
+
+        function clearDebug() {
+            document.getElementById('debug-output').textContent = 'Output cleared. Click buttons above to test...';
+        }
+
+        function debugAuth() {
+            debugLog('=== AUTH CHECK ===');
             currentUser = getCurrentUser();
             
             if (!currentUser) {
-                window.location.href = '/auth.html';
+                debugLog('❌ No user found in localStorage');
+                debugLog('Session Token: ' + localStorage.getItem('squidpro_session'));
+                debugLog('User Data: ' + localStorage.getItem('squidpro_user'));
                 return;
             }
-
-            if (!currentUser.roles.includes('validator')) {
-                alert('Validator role required. Please register as a validator.');
-                window.location.href = '/profile.html';
-                return;
-            }
-
-            await loadValidatorStats();
-            await loadAvailableTasks();
+            
+            debugLog('✅ User found: ' + currentUser.name);
+            debugLog('Email: ' + currentUser.email);
+            debugLog('Roles: ' + JSON.stringify(currentUser.roles));
+            debugLog('API Key: ' + currentUser.api_key.substring(0, 10) + '...');
+            debugLog('Has validator role: ' + currentUser.roles.includes('validator'));
         }
 
+        async function testAPI() {
+            debugLog('=== API CONNECTION TEST ===');
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                debugLog('✅ API responding: ' + JSON.stringify(data));
+            } catch (error) {
+                debugLog('❌ API connection failed: ' + error.message);
+            }
+        }
+
+        async function testValidatorEndpoint() {
+            debugLog('=== TESTING /validators/me ===');
+            
+            if (!currentUser) {
+                debugLog('❌ No user logged in');
+                return;
+            }
+            
+            debugLog('Making request with API key: ' + currentUser.api_key.substring(0, 10) + '...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/validators/me`, {
+                    headers: { 
+                        'X-API-Key': currentUser.api_key,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                debugLog('Response status: ' + response.status);
+                
+                const text = await response.text();
+                
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(text);
+                        debugLog('✅ Endpoint working!');
+                        debugLog('Validator data:\n' + JSON.stringify(data, null, 2));
+                    } catch (e) {
+                        debugLog('⚠️ Response OK but invalid JSON');
+                        debugLog('Raw: ' + text);
+                    }
+                } else {
+                    debugLog('❌ Endpoint returned error');
+                    debugLog('Response: ' + text);
+                }
+            } catch (error) {
+                debugLog('❌ Request failed: ' + error.message);
+            }
+        }
+
+        async function testTasksEndpoint() {
+            debugLog('=== TESTING /validation-tasks ===');
+            
+            if (!currentUser) {
+                debugLog('❌ No user logged in');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/validation-tasks`, {
+                    headers: { 
+                        'X-API-Key': currentUser.api_key,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                debugLog('Response status: ' + response.status);
+                
+                const text = await response.text();
+                
+                if (response.ok) {
+                    try {
+                        const data = JSON.parse(text);
+                        debugLog('✅ Tasks endpoint working!');
+                        debugLog(`Found ${data.length} tasks`);
+                        if (data.length > 0) {
+                            debugLog('First task:\n' + JSON.stringify(data[0], null, 2));
+                        }
+                    } catch (e) {
+                        debugLog('⚠️ Response OK but invalid JSON');
+                        debugLog('Raw: ' + text);
+                    }
+                } else {
+                    debugLog('❌ Tasks endpoint error');
+                    debugLog('Response: ' + text);
+                }
+            } catch (error) {
+                debugLog('❌ Request failed: ' + error.message);
+            }
+        }
+
+        // Main functions
         function getCurrentUser() {
             const userData = localStorage.getItem('squidpro_user');
             if (userData) {
@@ -680,23 +556,25 @@ file_hash = hashlib.sha256(data_bytes).hexdigest()
             
             event.target.classList.add('active');
             document.getElementById(`${tabName}-tab`).classList.add('active');
-
-            if (tabName === 'history') {
-                loadValidationHistory();
-            }
         }
 
         async function loadValidatorStats() {
             try {
+                debugLog('Loading validator stats...');
                 const response = await fetch(`${API_BASE}/validators/me`, {
                     headers: { 'X-API-Key': currentUser.api_key }
                 });
 
                 if (response.ok) {
                     validatorStats = await response.json();
+                    debugLog('✅ Stats loaded successfully');
                     updateStatsDisplay();
+                } else {
+                    const error = await response.text();
+                    debugLog('❌ Failed to load stats: ' + error);
                 }
             } catch (error) {
+                debugLog('❌ Stats loading error: ' + error.message);
                 console.error('Failed to load validator stats:', error);
             }
         }
@@ -704,12 +582,12 @@ file_hash = hashlib.sha256(data_bytes).hexdigest()
         function updateStatsDisplay() {
             if (!validatorStats) return;
 
-            document.getElementById('total-validations').textContent = validatorStats.stats.total_validations;
-            document.getElementById('consensus-rate').textContent = `${(validatorStats.stats.consensus_rate * 100).toFixed(0)}%`;
-            document.getElementById('avg-confidence').textContent = validatorStats.stats.avg_confidence.toFixed(2);
-            document.getElementById('total-earned').textContent = `$${validatorStats.stats.total_earned.toFixed(2)}`;
-            document.getElementById('current-balance').textContent = `$${validatorStats.balance.toFixed(2)}`;
-            document.getElementById('reputation-level').textContent = validatorStats.reputation_level.replace('_', ' ');
+            document.getElementById('total-validations').textContent = validatorStats.stats.total_validations || 0;
+            document.getElementById('consensus-rate').textContent = `${((validatorStats.stats.consensus_rate || 0) * 100).toFixed(0)}%`;
+            document.getElementById('avg-confidence').textContent = (validatorStats.stats.avg_confidence || 0).toFixed(2);
+            document.getElementById('total-earned').textContent = `$${(validatorStats.stats.total_earned || 0).toFixed(2)}`;
+            document.getElementById('current-balance').textContent = `$${(validatorStats.balance || 0).toFixed(2)}`;
+            document.getElementById('reputation-level').textContent = (validatorStats.reputation_level || 'novice_validator').replace(/_/g, ' ');
         }
 
         async function loadAvailableTasks() {
@@ -717,17 +595,22 @@ file_hash = hashlib.sha256(data_bytes).hexdigest()
             container.innerHTML = '<div class="loading">Loading validation tasks...</div>';
 
             try {
+                debugLog('Loading validation tasks...');
                 const response = await fetch(`${API_BASE}/validation-tasks`, {
                     headers: { 'X-API-Key': currentUser.api_key }
                 });
 
                 if (response.ok) {
                     const tasks = await response.json();
+                    debugLog(`✅ Loaded ${tasks.length} tasks`);
                     displayTasks(tasks);
                 } else {
+                    const error = await response.text();
+                    debugLog('❌ Failed to load tasks: ' + error);
                     container.innerHTML = '<div class="empty-state"><h3>Failed to load tasks</h3><p>Please try again later</p></div>';
                 }
             } catch (error) {
+                debugLog('❌ Tasks loading error: ' + error.message);
                 console.error('Failed to load tasks:', error);
                 container.innerHTML = '<div class="empty-state"><h3>Connection error</h3><p>Could not connect to API</p></div>';
             }
@@ -752,7 +635,7 @@ file_hash = hashlib.sha256(data_bytes).hexdigest()
                     </div>
                     
                     <div style="margin-bottom: 1rem;">
-                        <span class="validation-type-badge">${task.validation_type.replace('_', ' ')}</span>
+                        <span class="validation-type-badge">${task.validation_type.replace(/_/g, ' ')}</span>
                         <span style="font-size: 0.875rem; color: var(--text-secondary);">
                             ${task.spots_remaining} spot${task.spots_remaining !== 1 ? 's' : ''} remaining
                         </span>
@@ -771,121 +654,44 @@ file_hash = hashlib.sha256(data_bytes).hexdigest()
         }
 
         function startValidation(taskId, packageName, validationType) {
-            document.getElementById('task-id').value = taskId;
-            document.getElementById('modal-package-name').textContent = packageName;
-            document.getElementById('modal-validation-type').textContent = validationType.replace('_', ' ');
-            
-            const modal = document.getElementById('validation-modal');
-            modal.style.display = 'flex';
-        }
-
-        function closeValidationModal() {
-            document.getElementById('validation-modal').style.display = 'none';
-            document.getElementById('validation-form').reset();
-            document.getElementById('modal-status').innerHTML = '';
+            alert(`Starting validation for ${packageName}\n\nTask ID: ${taskId}\nType: ${validationType}\n\nValidation submission form coming soon!`);
         }
 
         function viewTaskDetails(taskId) {
             alert(`Task details view coming soon!\n\nTask ID: ${taskId}`);
         }
 
-        // Confidence score slider
-        document.getElementById('confidence-score').addEventListener('input', (e) => {
-            document.getElementById('confidence-display').textContent = `${e.target.value}%`;
-        });
-
-        // Form submission
-        document.getElementById('validation-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const taskId = document.getElementById('task-id').value;
-            const result = document.getElementById('validation-result').value;
-            const confidence = parseFloat(document.getElementById('confidence-score').value) / 100;
-            const notes = document.getElementById('validation-notes').value;
-            const validationDataText = document.getElementById('validation-data').value;
-
-            let validationData = {};
-            if (validationDataText) {
-                try {
-                    validationData = JSON.parse(validationDataText);
-                } catch (e) {
-                    alert('Invalid JSON in validation data');
-                    return;
-                }
+        // Initialize
+        async function init() {
+            debugLog('=== INITIALIZING VALIDATOR PAGE ===');
+            
+            currentUser = getCurrentUser();
+            
+            if (!currentUser) {
+                debugLog('❌ No user found - redirecting to auth');
+                window.location.href = '/auth.html';
+                return;
             }
+            
+            debugLog('✅ User: ' + currentUser.name);
+            debugLog('Roles: ' + currentUser.roles.join(', '));
 
-            const payload = {
-                passed: result === 'pass',
-                confidence_score: confidence,
-                notes: notes,
-                validation_data: validationData
-            };
-
-            try {
-                const response = await fetch(`${API_BASE}/validation-tasks/${taskId}/submit`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-API-Key': currentUser.api_key
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    document.getElementById('modal-status').innerHTML = 
-                        '<div class="status-message status-success">✓ Validation submitted successfully!</div>';
-                    
-                    setTimeout(() => {
-                        closeValidationModal();
-                        loadAvailableTasks();
-                        loadValidatorStats();
-                    }, 2000);
-                } else {
-                    document.getElementById('modal-status').innerHTML = 
-                        `<div class="status-message status-error">Error: ${data.detail || 'Submission failed'}</div>`;
-                }
-            } catch (error) {
-                document.getElementById('modal-status').innerHTML = 
-                    '<div class="status-message status-error">Network error. Please try again.</div>';
+            if (!currentUser.roles.includes('validator')) {
+                debugLog('❌ User does not have validator role');
+                alert('Validator role required. Please register as a validator at /auth.html');
+                window.location.href = '/profile.html';
+                return;
             }
-        });
+            
+            debugLog('✅ Validator role confirmed');
 
-        async function loadValidationHistory() {
-            const container = document.getElementById('history-container');
-            container.innerHTML = '<div class="loading">Loading validation history...</div>';
-
-            // Mock data for now - implement API endpoint
-            setTimeout(() => {
-                container.innerHTML = `
-                    <table class="history-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Package</th>
-                                <th>Type</th>
-                                <th>Result</th>
-                                <th>Confidence</th>
-                                <th>Earned</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>2025-01-15</td>
-                                <td>Crypto Price Feed</td>
-                                <td>content_hash</td>
-                                <td><span class="passed-badge pass">Pass</span></td>
-                                <td>0.95</td>
-                                <td>$0.035</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                `;
-            }, 500);
+            await loadValidatorStats();
+            await loadAvailableTasks();
+            
+            debugLog('=== INITIALIZATION COMPLETE ===');
         }
 
-        // Initialize on page load
+        // Start the app
         init();
     </script>
 </body>
