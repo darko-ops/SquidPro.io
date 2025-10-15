@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SquidPro Data Catalog</title>
+    <title>Obius Data Catalog</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -657,7 +657,7 @@
     <div class="sidebar" id="sidebar">
         <!-- Logo -->
         <div class="sidebar-logo">
-            <a href="/" class="logo">SquidPro</a>
+            <a href="/" class="logo">Obius</a>
         </div>
 
         <!-- Navigation -->
@@ -750,15 +750,15 @@
 
         // Authentication functions
         function getCurrentUser() {
-            const sessionToken = localStorage.getItem('squidpro_session');
-            const userData = localStorage.getItem('squidpro_user');
+            const sessionToken = localStorage.getItem('obius_session');
+            const userData = localStorage.getItem('obius_user');
             
             if (sessionToken && userData) {
                 try {
                     return JSON.parse(userData);
                 } catch (e) {
-                    localStorage.removeItem('squidpro_session');
-                    localStorage.removeItem('squidpro_user');
+                    localStorage.removeItem('obius_session');
+                    localStorage.removeItem('obius_user');
                 }
             }
             return null;
@@ -855,8 +855,8 @@
         }
 
         function logout() {
-            localStorage.removeItem('squidpro_session');
-            localStorage.removeItem('squidpro_user');
+            localStorage.removeItem('obius_session');
+            localStorage.removeItem('obius_user');
             window.location.href = '/auth.html';
         }
 
@@ -926,7 +926,7 @@
             } catch (error) {
                 container.innerHTML = `
                     <div class="error">
-                        Failed to load packages. Make sure SquidPro API is running.
+                        Failed to load packages. Make sure Obius API is running.
                         <br><br>
                         Error: ${error.message}
                     </div>

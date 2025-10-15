@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🔗 Complete SquidPro API Test Flow"
+echo "🔗 Complete Obius API Test Flow"
 echo "=================================="
 
 # Step 1: Mint a fresh token

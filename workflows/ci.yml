@@ -1,4 +1,4 @@
-name: SquidPro CI/CD
+name: Obius CI/CD
 
 on:
   push:
@@ -18,9 +18,9 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: squidpro
+          POSTGRES_USER: obius
           POSTGRES_PASSWORD: password
-          POSTGRES_DB: squidpro
+          POSTGRES_DB: obius
         options: >-
           --health-cmd pg_isready
           --health-interval 10s

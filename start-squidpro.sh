@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Starting SquidPro Data Marketplace"
+echo "🚀 Starting Obius Data Marketplace"
 echo "====================================="
 
 # Stop any existing containers
@@ -24,7 +24,7 @@ sleep 15
 echo "🔍 Checking service health..."
 
 # Check PostgreSQL
-if docker compose exec postgres pg_isready -U squidpro >/dev/null 2>&1; then
+if docker compose exec postgres pg_isready -U obius >/dev/null 2>&1; then
     echo "✅ PostgreSQL is ready"
 else
     echo "❌ PostgreSQL is not ready"
@@ -37,11 +37,11 @@ else
     echo "❌ Crypto Collector is not ready"
 fi
 
-# Check squidpro-api
+# Check obius-api
 if curl -s http://localhost:8100/health >/dev/null 2>&1; then
-    echo "✅ SquidPro API is ready"
+    echo "✅ Obius API is ready"
 else
-    echo "❌ SquidPro API is not ready"
+    echo "❌ Obius API is not ready"
 fi
 
 echo ""

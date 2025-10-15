@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🧪 Testing SquidPro System"
+echo "🧪 Testing Obius System"
 echo "=========================="
 
 API_BASE="http://localhost:8100"
@@ -11,9 +11,9 @@ echo "1. �� Health Checks"
 echo "   API Health:"
 if curl -s "$API_BASE/health" >/dev/null 2>&1; then
     HEALTH_RESPONSE=$(curl -s "$API_BASE/health")
-    echo "   ✅ SquidPro API is healthy: $HEALTH_RESPONSE"
+    echo "   ✅ Obius API is healthy: $HEALTH_RESPONSE"
 else
-    echo "   ❌ SquidPro API health check failed"
+    echo "   ❌ Obius API health check failed"
     echo "   Check if the service is running: docker compose ps"
 fi
 

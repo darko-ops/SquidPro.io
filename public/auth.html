@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SquidPro - Sign In</title>
+    <title>Obius - Sign In</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -325,7 +325,7 @@
     
     <div class="auth-container">
         <div class="auth-header">
-            <div class="logo">SquidPro</div>
+            <div class="logo">Obius</div>
             <p class="auth-subtitle">Access your data marketplace account</p>
         </div>
 
@@ -657,8 +657,8 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    localStorage.setItem('squidpro_session', data.session_token);
-                    localStorage.setItem('squidpro_user', JSON.stringify(data.user));
+                    localStorage.setItem('obius_session', data.session_token);
+                    localStorage.setItem('obius_user', JSON.stringify(data.user));
                     
                     showMessage('Sign in successful! Redirecting...', 'success');
                     
@@ -751,8 +751,8 @@
                             const loginData = await loginResponse.json();
 
                             if (loginResponse.ok) {
-                                localStorage.setItem('squidpro_session', loginData.session_token);
-                                localStorage.setItem('squidpro_user', JSON.stringify(loginData.user));
+                                localStorage.setItem('obius_session', loginData.session_token);
+                                localStorage.setItem('obius_user', JSON.stringify(loginData.user));
                                 
                                 window.location.href = '/catalog.html';
                             } else {
@@ -806,7 +806,7 @@
 
         // Initialize
         window.addEventListener('load', () => {
-            const user = localStorage.getItem('squidpro_user');
+            const user = localStorage.getItem('obius_user');
             if (user) {
                 window.location.href = '/catalog.html';
             }

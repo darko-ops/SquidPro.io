@@ -25,13 +25,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 logging.basicConfig(level=logging.INFO)
 
 # Configuration
-SECRET = os.getenv("SQUIDPRO_SECRET", "supersecret_change_me")
+SECRET = os.getenv("OBIUS_SECRET", "supersecret_change_me")
 PRICE = float(os.getenv("PRICE_PER_QUERY_USD", "0.005"))
 SPLIT_SUPPLIER = float(os.getenv("SUPPLIER_SPLIT", "0.7"))
 SPLIT_REVIEWER = float(os.getenv("REVIEWER_SPLIT", "0.2"))
-SPLIT_SQUIDPRO = float(os.getenv("SQUIDPRO_SPLIT", "0.1"))
+SPLIT_OBIUS = float(os.getenv("OBIUS_SPLIT", "0.1"))
 COLLECTOR = os.getenv("COLLECTOR_CRYPTO_URL", "http://collector-crypto:8200")
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://squidpro:password@postgres:5432/squidpro")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://obius:password@postgres:5432/obius")
 
 # Stellar configuration
 STELLAR_SECRET_KEY = os.getenv("STELLAR_SECRET_KEY", "SAMPLEKEY123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890AB")
@@ -671,8 +671,8 @@ def _auth(auth_header: Optional[str]):
         raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
     return claims
 
-async def update_balances(supplier_amt: float, reviewer_pool: float, squidpro_amt: float, supplier_id: str = "1"):
-    """Update balances for supplier, reviewer pool, and squidpro treasury"""
+async def update_balances(supplier_amt: float, reviewer_pool: float, obius_amt: float, supplier_id: str = "1"):
+    """Update balances for supplier, reviewer pool, and obius treasury"""
     async with db_pool.acquire() as conn:
         await conn.execute("""
             INSERT INTO balances (user_type, user_id, balance_usd) 
@@ -690,10 +690,10 @@ async def update_balances(supplier_amt: float, reviewer_pool: float, squidpro_am
         
         await conn.execute("""
             INSERT INTO balances (user_type, user_id, balance_usd) 
-            VALUES ('squidpro', 'treasury', $1)
+            VALUES ('obius', 'treasury', $1)
             ON CONFLICT (user_type, user_id) 
             DO UPDATE SET balance_usd = balances.balance_usd + $1
-        """, squidpro_amt)
+        """, obius_amt)
 
 async def log_pii_detection(conn, supplier_id: int, filename: str, analysis: Dict):
     """Log PII detection results to database"""
@@ -944,7 +944,7 @@ async def send_stellar_payment(recipient_address: str, amount_usd: float) -> str
                 network_passphrase=Network.TESTNET_NETWORK_PASSPHRASE if STELLAR_NETWORK == "testnet" else Network.PUBLIC_NETWORK_PASSPHRASE,
                 base_fee=100,
             )
-            .add_text_memo(f"SquidPro payout ${amount_usd:.6f}")
+            .add_text_memo(f"Obius payout ${amount_usd:.6f}")
             .append_payment_op(
                 destination=recipient_address,
                 asset=Asset.native(),
@@ -998,7 +998,7 @@ async def process_payouts():
             user_id = account["user_id"]
             balance = float(account["balance_usd"])
             
-            if user_type == "squidpro":
+            if user_type == "obius":
                 continue
                 
             recipient_address = await get_user_stellar_address(conn, user_type, user_id)
@@ -1178,7 +1178,7 @@ async def lifespan(app: FastAPI):
         await db_pool.close()
 
 # FastAPI App Setup
-api = FastAPI(title="SquidPro", version="0.1.0", lifespan=lifespan)
+api = FastAPI(title="Obius", version="0.1.0", lifespan=lifespan)
 
 api.add_middleware(
     CORSMiddleware,
@@ -1199,7 +1199,7 @@ async def serve_catalog():
     if os.path.exists(catalog_path):
         return FileResponse(catalog_path)
     else:
-        return {"message": "SquidPro API is running", "catalog": "catalog.html not found"}
+        return {"message": "Obius API is running", "catalog": "catalog.html not found"}
 
 @api.get("/profile.html")
 async def serve_profile():
@@ -2441,9 +2441,9 @@ async def query_package_data(package_id: int, Authorization: Optional[str] = Hea
         price = float(package["price_per_query"])
         supplier_amt = round(price * SPLIT_SUPPLIER, 6)
         reviewer_pool = round(price * SPLIT_REVIEWER, 6)
-        squidpro_amt = round(price * SPLIT_SQUIDPRO, 6)
+        obius_amt = round(price * SPLIT_OBIUS, 6)
         
-        await update_balances(supplier_amt, reviewer_pool, squidpro_amt, str(package["supplier_id"]))
+        await update_balances(supplier_amt, reviewer_pool, obius_amt, str(package["supplier_id"]))
         
         await conn.execute("""
             INSERT INTO query_history (package_id, agent_id, response_size, cost, trace_id)
@@ -2457,7 +2457,7 @@ async def query_package_data(package_id: int, Authorization: Optional[str] = Hea
             "ts": int(time.time()),
             "data": data,
             "cost": price,
-            "payout": {"supplier": supplier_amt, "reviewer_pool": reviewer_pool, "squidpro": squidpro_amt}
+            "payout": {"supplier": supplier_amt, "reviewer_pool": reviewer_pool, "obius": obius_amt}
         }
         return JSONResponse(receipt)
 
@@ -2499,9 +2499,9 @@ async def serve_uploaded_data(
         price = float(upload_info["price_per_query"])
         supplier_amt = round(price * SPLIT_SUPPLIER, 6)
         reviewer_pool = round(price * SPLIT_REVIEWER, 6)
-        squidpro_amt = round(price * SPLIT_SQUIDPRO, 6)
+        obius_amt = round(price * SPLIT_OBIUS, 6)
         
-        await update_balances(supplier_amt, reviewer_pool, squidpro_amt, str(upload_info["supplier_id"]))
+        await update_balances(supplier_amt, reviewer_pool, obius_amt, str(upload_info["supplier_id"]))
         
         await conn.execute("""
             INSERT INTO query_history (package_id, agent_id, response_size, cost, trace_id)
@@ -2518,7 +2518,7 @@ async def serve_uploaded_data(
         "limit": limit,
         "data": json_data,
         "cost": price,
-        "payout": {"supplier": supplier_amt, "reviewer_pool": reviewer_pool, "squidpro": squidpro_amt}
+        "payout": {"supplier": supplier_amt, "reviewer_pool": reviewer_pool, "obius": obius_amt}
     }
     
     return JSONResponse(receipt)
@@ -2529,12 +2529,12 @@ def mint(req: MintReq):
     trace_id = str(uuid.uuid4())
     exp = int(time.time()) + 3600
     token = jwt.encode({
-        "iss": "squidpro",
+        "iss": "obius",
         "sub": req.agent_id,
         "scope": req.scope,
         "trace_id": trace_id,
         "price": PRICE,
-        "splits": {"supplier": SPLIT_SUPPLIER, "reviewer": SPLIT_REVIEWER, "squidpro": SPLIT_SQUIDPRO},
+        "splits": {"supplier": SPLIT_SUPPLIER, "reviewer": SPLIT_REVIEWER, "obius": SPLIT_OBIUS},
         "exp": exp,
         "jti": str(uuid.uuid4())
     }, SECRET, algorithm="HS256")
@@ -2568,7 +2568,7 @@ async def get_price(pair: str = Query("BTCUSDT"), Authorization: Optional[str] =
         await update_balances(
             round(PRICE * SPLIT_SUPPLIER, 6),
             round(PRICE * SPLIT_REVIEWER, 6), 
-            round(PRICE * SPLIT_SQUIDPRO, 6),
+            round(PRICE * SPLIT_OBIUS, 6),
             "1"
         )
         
@@ -2582,7 +2582,7 @@ async def get_price(pair: str = Query("BTCUSDT"), Authorization: Optional[str] =
             "payout": {
                 "supplier": round(PRICE * SPLIT_SUPPLIER, 6),
                 "reviewer_pool": round(PRICE * SPLIT_REVIEWER, 6),
-                "squidpro": round(PRICE * SPLIT_SQUIDPRO, 6)
+                "obius": round(PRICE * SPLIT_OBIUS, 6)
             }
         }
         return JSONResponse(receipt)
@@ -2597,9 +2597,9 @@ async def get_price(pair: str = Query("BTCUSDT"), Authorization: Optional[str] =
     price = float(package["price_per_query"])
     supplier_amt = round(price * SPLIT_SUPPLIER, 6)
     reviewer_pool = round(price * SPLIT_REVIEWER, 6)
-    squidpro_amt = round(price * SPLIT_SQUIDPRO, 6)
+    obius_amt = round(price * SPLIT_OBIUS, 6)
     
-    await update_balances(supplier_amt, reviewer_pool, squidpro_amt, str(package["supplier_id"]))
+    await update_balances(supplier_amt, reviewer_pool, obius_amt, str(package["supplier_id"]))
     
     receipt = {
         "trace_id": claims["trace_id"],
@@ -2608,7 +2608,7 @@ async def get_price(pair: str = Query("BTCUSDT"), Authorization: Optional[str] =
         "price": data["price"],
         "volume": data["volume"],
         "cost": price,
-        "payout": {"supplier": supplier_amt, "reviewer_pool": reviewer_pool, "squidpro": squidpro_amt}
+        "payout": {"supplier": supplier_amt, "reviewer_pool": reviewer_pool, "obius": obius_amt}
     }
     return JSONResponse(receipt)
 

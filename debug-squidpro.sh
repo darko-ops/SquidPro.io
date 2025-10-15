@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🔍 SquidPro Debug Information"
+echo "🔍 Obius Debug Information"
 echo "============================"
 
 echo "📊 Container Status:"
@@ -17,8 +17,8 @@ lsof -i :5432 || echo "   No process on port 5432"
 
 echo ""
 echo "📝 Recent Logs (last 20 lines per service):"
-echo "--- SquidPro API ---"
-docker compose logs --tail=20 squidpro-api 2>/dev/null || echo "No squidpro-api logs"
+echo "--- Obius API ---"
+docker compose logs --tail=20 obius-api 2>/dev/null || echo "No obius-api logs"
 
 echo ""
 echo "--- Crypto Collector ---"

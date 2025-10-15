@@ -1,5 +1,5 @@
 services:
-  squidpro-api:
+  obius-api:
     build:
       context: .
       dockerfile: Dockerfile
@@ -8,13 +8,13 @@ services:
       - ./public:/app/public
       - ./uploads:/app/uploads  
     environment:
-      - SQUIDPRO_SECRET=supersecret_change_me
+      - OBIUS_SECRET=supersecret_change_me
       - PRICE_PER_QUERY_USD=0.005
       - SUPPLIER_SPLIT=0.7
       - REVIEWER_SPLIT=0.2
-      - SQUIDPRO_SPLIT=0.1
+      - OBIUS_SPLIT=0.1
       - COLLECTOR_CRYPTO_URL=http://collector-crypto:8200
-      - DATABASE_URL=postgresql://squidpro:password@postgres:5432/squidpro
+      - DATABASE_URL=postgresql://obius:password@postgres:5432/obius
       - STELLAR_SECRET_KEY=SDFF2WLXYOHAIA2NPOFJJXTJAU5DD6EBDWGTCFBQVGATEZJJWBTR23SH
       - STELLAR_NETWORK=testnet
       - USDC_ASSET_CODE=USDC
@@ -39,9 +39,9 @@ services:
   postgres:
     image: postgres:15
     environment:
-      - POSTGRES_USER=squidpro
+      - POSTGRES_USER=obius
       - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=squidpro
+      - POSTGRES_DB=obius
     ports:
       - "5432:5432"
     volumes:

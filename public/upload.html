@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Data Package - SquidPro</title>
+    <title>Upload Data Package - Obius</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -497,7 +497,7 @@ ADA,0.85,789.12,2025-01-01T10:00:00Z`;
     <div class="sidebar" id="sidebar">
         <!-- Logo -->
         <div class="sidebar-logo">
-            <a href="/" class="logo">SquidPro</a>
+            <a href="/" class="logo">Obius</a>
         </div>
 
         <!-- Navigation -->
@@ -519,7 +519,7 @@ ADA,0.85,789.12,2025-01-01T10:00:00Z`;
         <div class="upload-container">
             <div class="upload-header">
                 <h1 class="upload-title">Upload Data Package</h1>
-                <p class="upload-subtitle">Upload your CSV dataset to the SquidPro marketplace</p>
+                <p class="upload-subtitle">Upload your CSV dataset to the Obius marketplace</p>
             </div>
 
             <div class="upload-form">
@@ -634,15 +634,15 @@ ADA,0.85,789.12,2025-01-01T10:00:00Z`;
 
         // Authentication functions
         function getCurrentUser() {
-            const sessionToken = localStorage.getItem('squidpro_session');
-            const userData = localStorage.getItem('squidpro_user');
+            const sessionToken = localStorage.getItem('obius_session');
+            const userData = localStorage.getItem('obius_user');
             
             if (sessionToken && userData) {
                 try {
                     return JSON.parse(userData);
                 } catch (e) {
-                    localStorage.removeItem('squidpro_session');
-                    localStorage.removeItem('squidpro_user');
+                    localStorage.removeItem('obius_session');
+                    localStorage.removeItem('obius_user');
                 }
             }
             return null;
@@ -684,8 +684,8 @@ ADA,0.85,789.12,2025-01-01T10:00:00Z`;
         }
 
         function logout() {
-            localStorage.removeItem('squidpro_session');
-            localStorage.removeItem('squidpro_user');
+            localStorage.removeItem('obius_session');
+            localStorage.removeItem('obius_user');
             window.location.href = '/auth.html';
         }
 
@@ -785,8 +785,8 @@ ADA,0.85,789.12,2025-01-01T10:00:00Z`;
         // Debug function to check current user state
         function debugUserState() {
             console.log('Current User:', currentUser);
-            console.log('Session Token:', localStorage.getItem('squidpro_session'));
-            console.log('User Data:', localStorage.getItem('squidpro_user'));
+            console.log('Session Token:', localStorage.getItem('obius_session'));
+            console.log('User Data:', localStorage.getItem('obius_user'));
             
             if (currentUser) {
                 console.log('API Key:', currentUser.api_key);
@@ -824,7 +824,7 @@ ADA,0.85,789.12,2025-01-01T10:00:00Z`;
                 return true;
             } catch (error) {
                 console.error('API connectivity test failed:', error);
-                showError(`Cannot connect to SquidPro API at ${API_BASE}. Error: ${error.message}\n\nPlease check if the server is running.`);
+                showError(`Cannot connect to Obius API at ${API_BASE}. Error: ${error.message}\n\nPlease check if the server is running.`);
                 return false;
             }
         }

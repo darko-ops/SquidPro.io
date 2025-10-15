@@ -1,4 +1,4 @@
-# Add to squidpro-api/app.py
+# Add to obius-api/app.py
 
 import secrets
 import hashlib

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile - SquidPro</title>
+    <title>Profile - Obius</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -702,7 +702,7 @@
     <div class="sidebar" id="sidebar">
         <!-- Logo -->
         <div class="sidebar-logo">
-            <a href="/" class="logo">SquidPro</a>
+            <a href="/" class="logo">Obius</a>
         </div>
 
         <!-- Navigation -->
@@ -809,8 +809,8 @@
         function debugUserState() {
             console.log('=== USER STATE DEBUG ===');
             console.log('Current User:', currentUser);
-            console.log('Session Token:', localStorage.getItem('squidpro_session'));
-            console.log('User Data:', localStorage.getItem('squidpro_user'));
+            console.log('Session Token:', localStorage.getItem('obius_session'));
+            console.log('User Data:', localStorage.getItem('obius_user'));
             
             if (currentUser) {
                 console.log('API Key:', currentUser.api_key);
@@ -822,7 +822,7 @@
                 message += `✓ API Key: ${currentUser.api_key.substring(0, 20)}...\n`;
                 message += `✓ Key Format: ${currentUser.api_key.substring(0, 4)}\n`;
                 message += `✓ Roles: ${currentUser.roles.join(', ')}\n`;
-                message += `✓ Session Valid: ${!!localStorage.getItem('squidpro_session')}`;
+                message += `✓ Session Valid: ${!!localStorage.getItem('obius_session')}`;
                 
                 showDebugMessage(message, 'success');
             } else {
@@ -844,7 +844,7 @@
                 return true;
             } catch (error) {
                 console.error('API connectivity test failed:', error);
-                showDebugMessage(`❌ Cannot connect to SquidPro API\n\nURL: ${API_BASE}\nError: ${error.message}\n\nPlease check if the server is running.`, 'error');
+                showDebugMessage(`❌ Cannot connect to Obius API\n\nURL: ${API_BASE}\nError: ${error.message}\n\nPlease check if the server is running.`, 'error');
                 return false;
             }
         }
@@ -911,15 +911,15 @@
 
         // Authentication functions
         function getCurrentUser() {
-            const sessionToken = localStorage.getItem('squidpro_session');
-            const userData = localStorage.getItem('squidpro_user');
+            const sessionToken = localStorage.getItem('obius_session');
+            const userData = localStorage.getItem('obius_user');
             
             if (sessionToken && userData) {
                 try {
                     return JSON.parse(userData);
                 } catch (e) {
-                    localStorage.removeItem('squidpro_session');
-                    localStorage.removeItem('squidpro_user');
+                    localStorage.removeItem('obius_session');
+                    localStorage.removeItem('obius_user');
                 }
             }
             return null;
@@ -1225,8 +1225,8 @@
         }
 
         function logout() {
-            localStorage.removeItem('squidpro_session');
-            localStorage.removeItem('squidpro_user');
+            localStorage.removeItem('obius_session');
+            localStorage.removeItem('obius_user');
             window.location.href = '/auth.html';
         }
 

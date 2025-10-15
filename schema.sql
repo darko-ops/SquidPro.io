@@ -1,4 +1,4 @@
--- Complete SquidPro Database Schema
+-- Complete Obius Database Schema
 
 -- Core user tables
 CREATE TABLE IF NOT EXISTS suppliers (
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS data_packages (
 -- Balance tracking
 CREATE TABLE IF NOT EXISTS balances (
     id SERIAL PRIMARY KEY,
-    user_type VARCHAR(20) CHECK (user_type IN ('supplier', 'validator', 'squidpro', 'buyer')),
+    user_type VARCHAR(20) CHECK (user_type IN ('supplier', 'validator', 'obius', 'buyer')),
     user_id VARCHAR(255),
     balance_usd DECIMAL(10,6) DEFAULT 0,
     pending_payout_usd DECIMAL(10,6) DEFAULT 0,
@@ -214,7 +214,7 @@ ON CONFLICT DO NOTHING;
 
 -- Insert demo balances
 INSERT INTO balances (user_type, user_id, payout_threshold_usd) VALUES 
-('squidpro', 'treasury', 100.00),
+('obius', 'treasury', 100.00),
 ('supplier', '1', 25.00),
 ('supplier', '2', 25.00),
 ('reviewer', '1', 5.00),

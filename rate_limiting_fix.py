@@ -1,4 +1,4 @@
-# Add to squidpro-api/app.py
+# Add to obius-api/app.py
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
